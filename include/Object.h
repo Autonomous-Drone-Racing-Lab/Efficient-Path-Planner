@@ -1,28 +1,25 @@
+
+#pragma once
+
 #include "OBB.h"
 #include <Eigen/Dense>
+#include "Types.h"
+#include <string>
+#include <vector>
 
-struct OBBDescription
-{
-    Eigen::Vector3f center;
-    Eigen::Vector3f halfSize;
-    std::string type;
-};
-
-struct ObjectProperties
-{
-    float height;
-};
 
 class Object
 {
 public:
-    Object(Eigen::Vector3f globalCenter, Eigen::Matrix3f globalRotation, std::vector<OBB> obbs);
+    Object(const Eigen::Vector3f &globalCenter, const Eigen::Matrix3f &globalRotation, const std::vector<OBB> &obbs);
 
-    static Object createFromDescription(Eigen::Vector3f globalCenter, Eigen::Vector3f globalRotation, std::vector<OBBDescription> &obbDescriptions);
-    void translate(Eigen::Vector3f translation);
-    void rotateZ(float angle, bool useRadian = true);
+    static Object createFromDescription(const Eigen::Vector3f &globalCenter, const Eigen::Vector3f &globalRotation, const std::vector<OBBDescription> &obbDescriptions);
 
-private:
+    void translate(const Eigen::Vector3f &translation);
+    void rotateZ(const float angle, const bool useRadian = true);
+
+    std::vector<box> getAABBs(const float inflateSize) const;
+
     std::vector<OBB> obbs;
     Eigen::Vector3f globalCenter;
     Eigen::Matrix3f globalRotation;

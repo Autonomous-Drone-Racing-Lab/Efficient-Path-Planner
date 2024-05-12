@@ -1,35 +1,30 @@
-#include <Eigen/Dense>
-#include <boost/geometry.hpp>
-#include <boost/geometry/index/rtree.hpp>
-#include <boost/geometry/geometries/register/point.hpp>
-#include "OBB.h"
-#include "Object.h"
+#include "ValidityChecker.h"
 #include "ConfigParser.h"
+#include <Eigen/Dense>
+#include "Types.h"
+#include <ompl-1.6/ompl/base/StateSpace.h>
+#include <ompl-1.6/ompl/base/SpaceInformation.h>
+#include <ompl-1.6/ompl/base/spaces/RealVectorStateSpace.h>
+#include <ompl/base/OptimizationObjective.h>
+#include <memory>
+#include <ompl/base/OptimizationObjective.h>
+#include <ompl/base/Planner.h>
 
-// Register Eigen::Vector3f as a point type to Boost Geometry
-BOOST_GEOMETRY_REGISTER_POINT_3D(Eigen::Vector3f, float, boost::geometry::cs::cartesian, x(), y(), z())
 
-namespace bg = boost::geometry;
-namespace bgi = boost::geometry::index;
+class PathPlanner{
+    public: 
+    PathPlanner(const Eigen::MatrixXf& nominalGatePositionAndType, const Eigen::MatrixXf& nominalObstaclePosition, const Eigen::Vector3f& lowerBound, const Eigen::Vector3f& upperBound, const std::string& configPath);
 
-typedef Eigen::Vector3f point;
-typedef bg::model::box<point> box;
-typedef std::pair<box, unsigned> value;
-typedef bgi::rtree<point, bgi::quadratic<16>> rtree;
 
-class PathPlanner
-{
-public:
-    PathPlanner(float minHeight, float maxHeight);
+    Eigen::MatrixXf planPath(const Eigen::Vector3f& start, const Eigen::Vector3f& goal, const float timeLimit);
 
-    void addGate(int gateId, Eigen::VectorXf coordinates, bool subtractGateHeight);
-    void removeGate(int gateId);
-    void updateGateMidflight(int gateId, Eigen::VectorXf coordinates, bool withinRange);
 
-private:
-    std::map<unsigned int, Object> gates;
-    rtree index = rtree();
-    float minHeight = 0;
-    float maxHeight = 2;
+    private:
+    ompl::base::StateSpacePtr space;
+    ompl::base::SpaceInformationPtr si;
+    ompl::base::RealVectorStateSpace* rSpace;
+    std::shared_ptr<ValidityChecker> validityCkrPtr;
     ConfigParser configParser;
+
+    ompl::base::OptimizationObjectivePtr getStraightLineObjective(const ompl::base::SpaceInformationPtr& si, const Eigen::Vector3f& start, const Eigen::Vector3f& goal, const float optimalityThresholdPercentage);
 };

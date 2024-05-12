@@ -1,16 +1,20 @@
+#pragma once
+
 #include "json.h"
-#include "Object.h"
+#include "Types.h"
+#include <vector>
+#include <map>
+#include <string>
 
 using json = nlohmann::json;
-
 class ConfigParser
 {
 public:
-    ConfigParser(std::string configPath);
+    ConfigParser(const std::string& configPath);
 
-    std::vector<OBBDescription> &getGateGeometryByTypeId(int typeId);
-    ObjectProperties &getObjectPropertiesByTypeId(int typeId);
-    std::vector<OBBDescription> &getObstacleGeometry();
+    const std::vector<OBBDescription> &getGateGeometryByTypeId(const int typeId) const;
+    const ObjectProperties &getObjectPropertiesByTypeId(const int typeId) const;
+    const std::vector<OBBDescription> &getObstacleGeometry() const;
 
 private:
     json config;
