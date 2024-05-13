@@ -91,7 +91,7 @@ int main()
     const std::string configFile = "../config.json";
     PathPlanner pathPlanner(nominalGatesPosAndType, nominalObstaclePos, lowerBound, upperBound, configFile);
 
-    const float timeLimit = 0.1;
+    const float timeLimit = 0.05;
     std::vector<MatrixXf> completePath;
     for (int i = 0; i < checkpoints.rows() - 1; i += 2)
     {

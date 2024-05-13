@@ -19,6 +19,7 @@
 #include <ompl/geometric/planners/rrt/InformedRRTstar.h>
 #include <ompl/geometric/planners/rrt/RRTXstatic.h>
 #include <ompl/geometric/planners/rrt/RRTsharp.h>
+#include <ompl/geometric/PathSimplifier.h>
 
 namespace ob = ompl::base;
 PathPlanner::PathPlanner(const Eigen::MatrixXf &nominalGatePositionAndType, const Eigen::MatrixXf &nominalObstaclePosition, const Eigen::Vector3f &lowerBound, const Eigen::Vector3f &upperBound, const std::string &configPath)
@@ -94,6 +95,9 @@ Eigen::MatrixXf PathPlanner::planPath(const Eigen::Vector3f &start, const Eigen:
     {
         // Get the path as geometric Path
         auto path = pdef->getSolutionPath()->as<ompl::geometric::PathGeometric>();
+
+        ompl::geometric::PathSimplifier pathSimplifier(si);
+        pathSimplifier.reduceVertices(*path); 
 
         // Convert the path to an Eigen::MatrixXf
         Eigen::MatrixXf outputPath(path->getStateCount(), 3); // Dimensions: number of points x space dimensions (3D)
