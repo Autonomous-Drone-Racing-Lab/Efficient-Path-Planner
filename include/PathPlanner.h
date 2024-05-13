@@ -1,4 +1,4 @@
-#include "ValidityChecker.h"
+#include "World.h"
 #include "ConfigParser.h"
 #include <Eigen/Dense>
 #include "Types.h"
@@ -22,8 +22,7 @@ class PathPlanner{
     private:
     ompl::base::StateSpacePtr space;
     ompl::base::SpaceInformationPtr si;
-    ompl::base::RealVectorStateSpace* rSpace;
-    std::shared_ptr<ValidityChecker> validityCkrPtr;
+    std::shared_ptr<World> worldPtr;
     ConfigParser configParser;
 
     ompl::base::OptimizationObjectivePtr getStraightLineObjective(const ompl::base::SpaceInformationPtr& si, const Eigen::Vector3f& start, const Eigen::Vector3f& goal, const float optimalityThresholdPercentage);

@@ -3,6 +3,7 @@
 #include "Types.h"
 #include "ConfigParser.h"
 #include <string>
+#include <iostream>
 
 OBB::OBB(const Eigen::Vector3f &center, const Eigen::Vector3f &halfSize, const std::string &type) : center(center), halfSize(halfSize), type(type) {}
 
@@ -10,7 +11,7 @@ bool OBB::checkCollisionWithRay(const Eigen::Vector3f& start, const Eigen::Vecto
     // Transform the ray into the OBB's local coordinate system
     const Eigen::Vector3f localStart = rotation.transpose() * (start - center);
     const Eigen::Vector3f localEnd = rotation.transpose() * (end - center);
-    const Eigen::Vector3f localDirection = (localEnd - localStart).normalized();
+    const Eigen::Vector3f localDirection = (localEnd - localStart);
 
     float tMin = 0;
     float tMax = 1;
@@ -33,8 +34,8 @@ bool OBB::checkCollisionWithRay(const Eigen::Vector3f& start, const Eigen::Vecto
             float tEntry = std::min(t1, t2);
             float tExit = std::max(t1, t2);
 
-            float tMin = std::max(tMin, tEntry);
-            float tMax = std::min(tMax, tExit);
+            tMin = std::max(tMin, tEntry);
+            tMax = std::min(tMax, tExit);
 
             if(tMin > tMax){
                 return false;
@@ -57,18 +58,23 @@ bool OBB::checkCollisionWithPoint(const Eigen::Vector3f& point, const float infl
 }
 
 
-box OBB::getAABB(const float inflateSize)const{
+box OBB::getAABB(const float inflateSize) const {
    // Get world fram AABB by rotating object into world frame and doing worst case estimation
    // Calculate the cornoes of the AABB based on the OBB center, half sizes and rotation
    // For this first create unit cube, scaled by halfSize
+    
     Eigen::Matrix3Xf corners(3, 8);
     corners << -1,  1,  1, -1, -1,  1,  1, -1,
                -1, -1,  1,  1, -1, -1,  1,  1,
                -1, -1, -1, -1,  1,  1,  1,  1;
-    corners = corners.array().colwise() * halfSize.array();
+    
+    Eigen::Matrix<float, 3, 8> halfSizesStacked = halfSize.replicate(1, 8);
+    corners = corners.cwiseProduct(halfSizesStacked);
 
     // Rotate the corners
-    const Eigen::Matrix3Xf cornersGlobalFrame = (rotation.transpose() * corners) + center;
+    // Todo, with or whithout transpose?
+    const Eigen::Matrix<float, 3, 8> centerStacked = center.replicate(1, 8);
+    const Eigen::Matrix3Xf cornersGlobalFrame = (rotation * corners)+ centerStacked;
     Eigen::Vector3f minCorner = cornersGlobalFrame.rowwise().minCoeff();
     Eigen::Vector3f maxCorner = cornersGlobalFrame.rowwise().maxCoeff();
 

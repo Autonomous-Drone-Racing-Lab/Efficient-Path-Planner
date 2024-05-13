@@ -6,19 +6,30 @@
 #include <ompl/base/objectives/PathLengthOptimizationObjective.h>
 #include <ompl/base/spaces/RealVectorBounds.h>
 #include <ompl/base/OptimizationObjective.h>
-#include "ValidityChecker.h"
+#include "World.h"
 #include "ConfigParser.h"
 #include <Eigen/Dense>
 #include "Types.h"
 #include <memory>
 #include <ompl/geometric/planners/rrt/RRTstar.h>
+#include <ompl/geometric/planners/rrt/pRRT.h>
+#include "MotionValidator.h"
+#include "StateValidator.h"
+#include "memory"
+#include <ompl/geometric/planners/rrt/InformedRRTstar.h>
+#include <ompl/geometric/planners/rrt/RRTXstatic.h>
+#include <ompl/geometric/planners/rrt/RRTsharp.h>
 
 namespace ob = ompl::base;
 PathPlanner::PathPlanner(const Eigen::MatrixXf &nominalGatePositionAndType, const Eigen::MatrixXf &nominalObstaclePosition, const Eigen::Vector3f &lowerBound, const Eigen::Vector3f &upperBound, const std::string &configPath)
     : configParser(ConfigParser(configPath))
-{
-    rSpace = new ob::RealVectorStateSpace(3);
-    space = ob::StateSpacePtr(rSpace);
+{   
+    std::cout << "Creating PathPlanner" << std::endl;
+
+    worldPtr = std::make_shared<World>(configParser);
+
+    // Todo, potential memory leak
+    space = ob::StateSpacePtr(new ob::RealVectorStateSpace(3));
     ob::RealVectorBounds bounds(3);
     for (int i = 0; i < 3; i++)
     {
@@ -26,18 +37,29 @@ PathPlanner::PathPlanner(const Eigen::MatrixXf &nominalGatePositionAndType, cons
         bounds.setHigh(i, upperBound(i));
     }
     space->as<ob::RealVectorStateSpace>()->setBounds(bounds);
+
+    // Todo, potential memory leak
     si = ob::SpaceInformationPtr(new ob::SpaceInformation(space));
 
-    validityCkrPtr = std::make_shared<ValidityChecker>(si, configParser);
-
+   
     // parse nomial gates
     for (int i = 0; i < nominalGatePositionAndType.rows(); i++)
-    {
+    {   
+        std::cout << "Adding gate " << i << std::endl;
         Eigen::VectorXf gate = nominalGatePositionAndType.row(i);
-        validityCkrPtr->addGate(i, gate);
+        worldPtr->addGate(i, gate);
     }
 
-    si->setStateValidityChecker(ob::StateValidityCheckerPtr(validityCkrPtr));
+    // parse nominal obstacles
+    for (int i = 0; i < nominalObstaclePosition.rows(); i++)
+    {
+        Eigen::VectorXf obstacle = nominalObstaclePosition.row(i);
+        worldPtr->addObstacle(i, obstacle);
+    }
+
+    si->setStateValidityChecker(std::make_shared<StateValidator>(si, worldPtr));
+    si->setMotionValidator(std::make_shared<MotionValidator>(si, worldPtr));
+
     si->setup();
 }
 
@@ -59,7 +81,9 @@ Eigen::MatrixXf PathPlanner::planPath(const Eigen::Vector3f &start, const Eigen:
     pdef->setStartAndGoalStates(startState, goalState);
 
     // create planner
-    ob::PlannerPtr planner(new ompl::geometric::RRTstar(si));
+    // ob::PlannerPtr planner(new ompl::geometric::RRTstar(si));
+     ob::PlannerPtr planner(new ompl::geometric::InformedRRTstar(si));
+   
     planner->setProblemDefinition(pdef);
     planner->setup();
 

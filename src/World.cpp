@@ -1,5 +1,4 @@
-#include "ValidityChecker.h"
-
+#include "World.h"
 #include <Eigen/Dense>
 #include "OBB.h"
 #include "Object.h"
@@ -11,7 +10,7 @@
 #include <boost/geometry/index/rtree.hpp>
 
 namespace ob = ompl::base;
-void ValidityChecker::addGatePrivateOperation(const int gateId, const Eigen::VectorXf &coordinates, const bool subtractGateHeight, const bool isUpdate)
+void World::addGatePrivateOperation(const int gateId, const Eigen::VectorXf &coordinates, const bool subtractGateHeight, const bool isUpdate)
 {
     Eigen::Vector3f pos = coordinates.head(3);
     Eigen::Vector3f rot = coordinates.segment(3, 3);
@@ -35,17 +34,17 @@ void ValidityChecker::addGatePrivateOperation(const int gateId, const Eigen::Vec
     addObject(obj, gateId, "gate", inflateSizeGate);
 }
 
-void ValidityChecker::addGate(int gateId, const Eigen::VectorXf &coordinates)
+void World::addGate(int gateId, const Eigen::VectorXf &coordinates)
 {
     addGatePrivateOperation(gateId, coordinates, false, false);
 }
 
-void ValidityChecker::updateGatePosition(const int gateId, const Eigen::VectorXf &coordinates, const bool subtractGateHeight)
+void World::updateGatePosition(const int gateId, const Eigen::VectorXf &coordinates, const bool subtractGateHeight)
 {
     addGatePrivateOperation(gateId, coordinates, subtractGateHeight, true);
 }
 
-void ValidityChecker::addObstacle(const int obstacleId, const Eigen::VectorXf &coordinates)
+void World::addObstacle(const int obstacleId, const Eigen::VectorXf &coordinates)
 {
     Eigen::Vector3f pos = coordinates.head(3);
     Eigen::Vector3f rot = coordinates.segment(3, 3);
@@ -55,7 +54,7 @@ void ValidityChecker::addObstacle(const int obstacleId, const Eigen::VectorXf &c
     addObject(obj, obstacleId, "obstacle", inflateSizeObstacle);
 }
 
-void ValidityChecker::addObject(const Object &obj, const int id, const std::string &type, const float inflateSize)
+void World::addObject(const Object &obj, const int id, const std::string &type, const float inflateSize)
 {
 
     // create bounding boxes to insert in r-tree
@@ -68,7 +67,7 @@ void ValidityChecker::addObject(const Object &obj, const int id, const std::stri
     }
 }
 
-void ValidityChecker::removeObject(const int id, const std::string& type, const int noOfObbs, const float inflateSize)
+void World::removeObject(const int id, const std::string &type, const int noOfObbs, const float inflateSize)
 {
     for (int i = 0; i < noOfObbs; i++)
     {
@@ -79,23 +78,50 @@ void ValidityChecker::removeObject(const int id, const std::string& type, const 
     }
 }
 
-bool ValidityChecker::isValid(const ob::State *state) const
+bool World::checkPointValidity(const Eigen::Vector3f &point)
 {
-    const ob::RealVectorStateSpace::StateType *state3D =
-        state->as<ob::RealVectorStateSpace::StateType>();
-    Eigen::Vector3f pos(state3D->values[0], state3D->values[1], state3D->values[2]);
-    // check where pos is in the r-tree
     std::vector<value> potentialHits;
-    index.query(boost::geometry::index::contains(pos), std::back_inserter(potentialHits));
+    index.query(boost::geometry::index::contains(point), std::back_inserter(potentialHits));
 
     for (const value &v : potentialHits)
     {
         OBB obb = obbs.at(v.second);
+
+        bool isGate = v.second.find("gate") != std::string::npos;
         // ToDo, handle proper inflateSize
-        if(obb.checkCollisionWithPoint(pos, inflateSizeGate)){
+        if (obb.checkCollisionWithPoint(point, isGate ? inflateSizeGate : inflateSizeObstacle))
+        {
             return false;
         }
     }
 
+    return true;
+}
+
+bool World::checkRayValid(const Eigen::Vector3f &start, const Eigen::Vector3f &end)
+{
+    // create ray bounding box
+    // ToDo how can we make this more efficient
+    Eigen::Matrix<float, 3, 2> ray;
+    ray.col(0) = start;
+    ray.col(1) = end;
+    Eigen::Vector3f rayMin = ray.rowwise().minCoeff();
+    Eigen::Vector3f rayMax = ray.rowwise().maxCoeff();
+    box rayBox(rayMin, rayMax);
+
+    // find potential hits
+    std::vector<value> potentialHits;
+    index.query(boost::geometry::index::intersects(rayBox), std::back_inserter(potentialHits));
+
+    for (const value &v : potentialHits)
+    {
+        OBB obb = obbs.at(v.second);
+        bool isGate = v.second.find("gate") != std::string::npos;
+        // ToDo, handle proper inflateSize
+        if (obb.checkCollisionWithRay(start, end, isGate ? inflateSizeGate : inflateSizeObstacle))
+        {
+            return false;
+        }
+    }
     return true;
 }
