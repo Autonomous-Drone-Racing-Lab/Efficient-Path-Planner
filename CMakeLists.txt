@@ -17,7 +17,9 @@ add_library(${PROJECT_NAME} STATIC
     src/PathPlanner.cpp
     src/OBB.cpp
     src/Object.cpp
-    src/ValidityChecker.cpp
+    src/World.cpp
+    src/MotionValidator.cpp
+    src/StateValidator.cpp
     
 )
 set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -47,4 +49,8 @@ target_link_libraries(${PROJECT_NAME}
 # Compile test_1.cpp to an executable
 add_executable(test_1 src/test_1.cpp)
 target_link_libraries(test_1 ${PROJECT_NAME})
+
+# Compile test_2.cpp to an executable
+add_executable(test_2 src/test_objects.cpp)
+target_link_libraries(test_2 ${PROJECT_NAME})
 
