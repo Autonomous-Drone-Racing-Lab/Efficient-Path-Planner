@@ -1,3 +1,5 @@
+#pragma once
+
 #include "World.h"
 #include "ConfigParser.h"
 #include <Eigen/Dense>
@@ -13,17 +15,19 @@
 
 class PathPlanner{
     public: 
-    PathPlanner(const Eigen::MatrixXf& nominalGatePositionAndType, const Eigen::MatrixXf& nominalObstaclePosition, const Eigen::Vector3f& lowerBound, const Eigen::Vector3f& upperBound, const std::string& configPath);
+    PathPlanner(const Eigen::MatrixXd& nominalGatePositionAndType, const Eigen::MatrixXd& nominalObstaclePosition, std::shared_ptr<ConfigParser> configParser);
 
 
-    Eigen::MatrixXf planPath(const Eigen::Vector3f& start, const Eigen::Vector3f& goal, const float timeLimit);
+    Eigen::MatrixXd planPath(const Eigen::Vector3d& start, const Eigen::Vector3d& goal, const double timeLimit);
+
+    void updateGatePos(const int gateId, const Eigen::Vector3d& newPose, const bool subtractHeight);
 
 
     private:
     ompl::base::StateSpacePtr space;
     ompl::base::SpaceInformationPtr si;
     std::shared_ptr<World> worldPtr;
-    ConfigParser configParser;
+    std::shared_ptr<ConfigParser> configParser;
 
-    ompl::base::OptimizationObjectivePtr getStraightLineObjective(const ompl::base::SpaceInformationPtr& si, const Eigen::Vector3f& start, const Eigen::Vector3f& goal, const float optimalityThresholdPercentage);
+    ompl::base::OptimizationObjectivePtr getStraightLineObjective(const ompl::base::SpaceInformationPtr& si, const Eigen::Vector3d& start, const Eigen::Vector3d& goal, const double optimalityThresholdPercentage);
 };

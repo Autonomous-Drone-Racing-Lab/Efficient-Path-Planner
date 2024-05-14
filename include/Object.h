@@ -11,16 +11,16 @@
 class Object
 {
 public:
-    Object(const Eigen::Vector3f &globalCenter, const Eigen::Matrix3f &globalRotation, const std::vector<OBB> &obbs);
+    Object(const Eigen::Vector3d &globalCenter, const Eigen::Matrix3d &globalRotation, const std::vector<OBB> &obbs);
 
-    static Object createFromDescription(const Eigen::Vector3f &globalCenter, const Eigen::Vector3f &globalRotation, const std::vector<OBBDescription> &obbDescriptions);
+    static Object createFromDescription(const Eigen::Vector3d &globalCenter, const Eigen::Vector3d &globalRotation, const std::vector<OBBDescription> &obbDescriptions);
 
-    void translate(const Eigen::Vector3f &translation);
-    void rotateZ(const float angle, const bool useRadian = true);
+    void translate(const Eigen::Vector3d &translation);
+    void rotateZ(const double angle, const bool useRadian = true);
 
-    std::vector<box> getAABBs(const float inflateSize) const;
+    std::vector<box> getAABBs(const double inflateSize) const;
 
     std::vector<OBB> obbs;
-    Eigen::Vector3f globalCenter;
-    Eigen::Matrix3f globalRotation;
+    Eigen::Vector3d globalCenter;
+    Eigen::Matrix3d globalRotation;
 };

@@ -4,11 +4,13 @@
 #include <Eigen/Dense>
 #include "PathPlanner.h"
 #include <iostream>
+#include "poly_traj/trajectory_generator.h"
+#include "OnlineTrajGenerator.h"
 
 using json = nlohmann::json;
 using namespace Eigen;
 
-bool parseJsonToMatrices(const std::string &filename, MatrixXf &gatesPosAndType, MatrixXf &obstaclePos, MatrixXf &checkpoints)
+bool parseJsonToMatrices(const std::string &filename, MatrixXd &gatesPosAndType, MatrixXd &obstaclePos, MatrixXd &checkpoints)
 {
     std::ifstream file(filename);
     if (!file.is_open())
@@ -26,7 +28,7 @@ bool parseJsonToMatrices(const std::string &filename, MatrixXf &gatesPosAndType,
         return false;
     }
 
-    auto parseMatrix = [](const json &jsonArray, MatrixXf &matrix)
+    auto parseMatrix = [](const json &jsonArray, MatrixXd &matrix)
     {
         size_t numRows = jsonArray.size();
         size_t numCols = jsonArray.empty() ? 0 : jsonArray[0].size();
@@ -49,7 +51,7 @@ bool parseJsonToMatrices(const std::string &filename, MatrixXf &gatesPosAndType,
 }
 
 // Function to write a matrix to a text file
-void writePathToFile(const std::vector<Eigen::MatrixXf> &completePath, const std::string &filename)
+void writePathToFile(const std::vector<Eigen::MatrixXd> &completePath, const std::string &filename)
 {
     std::ofstream file(filename);
     if (!file.is_open())
@@ -80,43 +82,25 @@ int main()
 {
 
     const std::string filename = "../task.json";
-    MatrixXf nominalGatesPosAndType;
-    MatrixXf nominalObstaclePos;
-    MatrixXf checkpoints;
+    MatrixXd nominalGatesPosAndType;
+    MatrixXd nominalObstaclePos;
+    MatrixXd checkpoints;
     parseJsonToMatrices(filename, nominalGatesPosAndType, nominalObstaclePos, checkpoints);
 
-    Eigen::Vector3f lowerBound(-2, -2, 0);
-    Eigen::Vector3f upperBound(2, 2, 2);
+    Eigen::Vector3d lowerBound(-2, -2, 0);
+    Eigen::Vector3d upperBound(2, 2, 2);
 
     const std::string configFile = "../config.json";
-    PathPlanner pathPlanner(nominalGatesPosAndType, nominalObstaclePos, lowerBound, upperBound, configFile);
 
-    const float timeLimit = 0.05;
-    std::vector<MatrixXf> completePath;
-    for (int i = 0; i < checkpoints.rows() - 1; i += 2)
-    {
-        const Vector3f start(checkpoints(i, 0), checkpoints(i, 1), checkpoints(i, 2));
-        const Vector3f goal(checkpoints(i + 1, 0), checkpoints(i + 1, 1), checkpoints(i + 1, 2));
+    const Eigen::Vector3d start = Eigen::Vector3d(1, 1, 0.2);
+    const Eigen::Vector3d goal = Eigen::Vector3d(0, -2, 0.5);
+    OnlineTrajGenerator onlineTrajGenerator(start, goal, nominalGatesPosAndType, nominalObstaclePos, configFile);
 
-        const float optimalStraightLineCost = (goal - start).norm();
-        std::cout << "Optimal straight line cost: " << optimalStraightLineCost << std::endl;
+    const double takeoffTime = 0.0;
+    onlineTrajGenerator.preComputeTraj(takeoffTime);
+    Eigen::MatrixXd trajSample = onlineTrajGenerator.sampleTraj(0.3);
 
-        MatrixXf path = pathPlanner.planPath(start, goal, timeLimit);
-
-        // calculate cost of path
-        float pathCost = 0;
-        for (int i = 0; i < path.rows() - 1; i++)
-        {
-            pathCost += (path.row(i + 1) - path.row(i)).norm();
-        }
-
-        std::cout << "Path cost: " << pathCost << std::endl;
-
-        completePath.push_back(path);
-    }
-
-    std::string outputPath = "../output.txt";
-    writePathToFile(completePath, outputPath);
+    std::cout << trajSample << std::endl;
 
     return 0;
 }

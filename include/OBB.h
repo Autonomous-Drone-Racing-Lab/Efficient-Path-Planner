@@ -9,15 +9,15 @@
 class OBB
 {
 public:
-    OBB(const Eigen::Vector3f &center, const Eigen::Vector3f &halfSize, const std::string &type);
+    OBB(const Eigen::Vector3d &center, const Eigen::Vector3d &halfSize, const std::string &type);
 
-    bool checkCollisionWithRay(const Eigen::Vector3f &start, const Eigen::Vector3f &end, const float inflateSize) const;
-    bool checkCollisionWithPoint(const Eigen::Vector3f &point, const float inflateSize) const;
-    box getAABB(const float inflateSize) const;
+    bool checkCollisionWithRay(const Eigen::Vector3d &start, const Eigen::Vector3d &end, const double inflateSize) const;
+    bool checkCollisionWithPoint(const Eigen::Vector3d &point, const double inflateSize) const;
+    box getAABB(const double inflateSize) const;
 
-    Eigen::Vector3f center;
-    Eigen::Vector3f halfSize;
-    Eigen::Matrix3f rotation = Eigen::Matrix3f::Identity(); // No rotation on initialization
+    Eigen::Vector3d center;
+    Eigen::Vector3d halfSize;
+    Eigen::Matrix3d rotation = Eigen::Matrix3d::Identity(); // No rotation on initialization
     std::string type;
     box boundingBox;
 };

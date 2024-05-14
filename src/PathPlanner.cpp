@@ -22,10 +22,9 @@
 #include <ompl/geometric/PathSimplifier.h>
 
 namespace ob = ompl::base;
-PathPlanner::PathPlanner(const Eigen::MatrixXf &nominalGatePositionAndType, const Eigen::MatrixXf &nominalObstaclePosition, const Eigen::Vector3f &lowerBound, const Eigen::Vector3f &upperBound, const std::string &configPath)
-    : configParser(ConfigParser(configPath))
+PathPlanner::PathPlanner(const Eigen::MatrixXd &nominalGatePositionAndType, const Eigen::MatrixXd &nominalObstaclePosition, std::shared_ptr<ConfigParser> configParser)
+    : configParser(configParser)
 {   
-    std::cout << "Creating PathPlanner" << std::endl;
 
     worldPtr = std::make_shared<World>(configParser);
 
@@ -34,8 +33,8 @@ PathPlanner::PathPlanner(const Eigen::MatrixXf &nominalGatePositionAndType, cons
     ob::RealVectorBounds bounds(3);
     for (int i = 0; i < 3; i++)
     {
-        bounds.setLow(i, lowerBound(i));
-        bounds.setHigh(i, upperBound(i));
+        bounds.setLow(i, configParser->getWorldProperties().lowerBound(i));
+        bounds.setHigh(i, configParser->getWorldProperties().upperBound(i));
     }
     space->as<ob::RealVectorStateSpace>()->setBounds(bounds);
 
@@ -47,14 +46,14 @@ PathPlanner::PathPlanner(const Eigen::MatrixXf &nominalGatePositionAndType, cons
     for (int i = 0; i < nominalGatePositionAndType.rows(); i++)
     {   
         std::cout << "Adding gate " << i << std::endl;
-        Eigen::VectorXf gate = nominalGatePositionAndType.row(i);
+        Eigen::VectorXd gate = nominalGatePositionAndType.row(i);
         worldPtr->addGate(i, gate);
     }
 
     // parse nominal obstacles
     for (int i = 0; i < nominalObstaclePosition.rows(); i++)
     {
-        Eigen::VectorXf obstacle = nominalObstaclePosition.row(i);
+        Eigen::VectorXd obstacle = nominalObstaclePosition.row(i);
         worldPtr->addObstacle(i, obstacle);
     }
 
@@ -64,7 +63,7 @@ PathPlanner::PathPlanner(const Eigen::MatrixXf &nominalGatePositionAndType, cons
     si->setup();
 }
 
-Eigen::MatrixXf PathPlanner::planPath(const Eigen::Vector3f &start, const Eigen::Vector3f &goal, const float timeLimit)
+Eigen::MatrixXd PathPlanner::planPath(const Eigen::Vector3d &start, const Eigen::Vector3d &goal, const double timeLimit)
 {
     // set start and goal
     ob::ScopedState<> startState(space);
@@ -90,7 +89,7 @@ Eigen::MatrixXf PathPlanner::planPath(const Eigen::Vector3f &start, const Eigen:
 
     ob::PlannerStatus solved = planner->solve(timeLimit);
 
-    // now convert back to Eigen::MatrixXf, i.e. [[x1, y1, z1], [x2, y2, z2], ...]
+    // now convert back to Eigen::MatrixXd, i.e. [[x1, y1, z1], [x2, y2, z2], ...]
     if (solved)
     {
         // Get the path as geometric Path
@@ -99,8 +98,8 @@ Eigen::MatrixXf PathPlanner::planPath(const Eigen::Vector3f &start, const Eigen:
         ompl::geometric::PathSimplifier pathSimplifier(si);
         pathSimplifier.reduceVertices(*path); 
 
-        // Convert the path to an Eigen::MatrixXf
-        Eigen::MatrixXf outputPath(path->getStateCount(), 3); // Dimensions: number of points x space dimensions (3D)
+        // Convert the path to an Eigen::MatrixXd
+        Eigen::MatrixXd outputPath(path->getStateCount(), 3); // Dimensions: number of points x space dimensions (3D)
         for (std::size_t i = 0; i < path->getStateCount(); ++i)
         {
             const auto *state = path->getState(i)->as<ob::RealVectorStateSpace::StateType>();
@@ -114,16 +113,21 @@ Eigen::MatrixXf PathPlanner::planPath(const Eigen::Vector3f &start, const Eigen:
     else
     {
         // Return an empty matrix if planning failed
-        return Eigen::MatrixXf(0, 3);
+        return Eigen::MatrixXd(0, 3);
     }
 }
 
-ompl::base::OptimizationObjectivePtr PathPlanner::getStraightLineObjective(const ob::SpaceInformationPtr &si, const Eigen::Vector3f &start, const Eigen::Vector3f &goal, const float optimalityThresholdPercentage)
+ompl::base::OptimizationObjectivePtr PathPlanner::getStraightLineObjective(const ob::SpaceInformationPtr &si, const Eigen::Vector3d &start, const Eigen::Vector3d &goal, const double optimalityThresholdPercentage)
 {
-    const float straightLineDistance = (goal - start).norm();
-    const float optimalityThreshold = straightLineDistance * optimalityThresholdPercentage;
+    const double straightLineDistance = (goal - start).norm();
+    const double optimalityThreshold = straightLineDistance * optimalityThresholdPercentage;
 
     ob::OptimizationObjectivePtr obj(new ob::PathLengthOptimizationObjective(si));
     obj->setCostThreshold(ob::Cost(optimalityThreshold));
     return obj;
+}
+
+void PathPlanner::updateGatePos(const int gateId, const Eigen::Vector3d &newPose, const bool subtractHeight)
+{
+    worldPtr->updateGatePosition(gateId, newPose, subtractHeight);
 }

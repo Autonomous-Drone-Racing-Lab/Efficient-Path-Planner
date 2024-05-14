@@ -10,13 +10,13 @@
 #include <boost/geometry/index/rtree.hpp>
 
 namespace ob = ompl::base;
-void World::addGatePrivateOperation(const int gateId, const Eigen::VectorXf &coordinates, const bool subtractGateHeight, const bool isUpdate)
+void World::addGatePrivateOperation(const int gateId, const Eigen::VectorXd &coordinates, const bool subtractGateHeight, const bool isUpdate)
 {
-    Eigen::Vector3f pos = coordinates.head(3);
-    Eigen::Vector3f rot = coordinates.segment(3, 3);
+    Eigen::Vector3d pos = coordinates.head(3);
+    Eigen::Vector3d rot = coordinates.segment(3, 3);
     int type = coordinates(6);
-    const std::vector<OBBDescription> &obbDescriptions = configParser.getGateGeometryByTypeId(type);
-    const ObjectProperties &objectProperties = configParser.getObjectPropertiesByTypeId(type);
+    const std::vector<OBBDescription> &obbDescriptions = configParser->getGateGeometryByTypeId(type);
+    const ObjectProperties &objectProperties = configParser->getObjectPropertiesByTypeId(type);
 
     if (subtractGateHeight)
     {
@@ -34,27 +34,27 @@ void World::addGatePrivateOperation(const int gateId, const Eigen::VectorXf &coo
     addObject(obj, gateId, "gate", inflateSizeGate);
 }
 
-void World::addGate(int gateId, const Eigen::VectorXf &coordinates)
+void World::addGate(int gateId, const Eigen::VectorXd &coordinates)
 {
     addGatePrivateOperation(gateId, coordinates, false, false);
 }
 
-void World::updateGatePosition(const int gateId, const Eigen::VectorXf &coordinates, const bool subtractGateHeight)
+void World::updateGatePosition(const int gateId, const Eigen::VectorXd &coordinates, const bool subtractGateHeight)
 {
     addGatePrivateOperation(gateId, coordinates, subtractGateHeight, true);
 }
 
-void World::addObstacle(const int obstacleId, const Eigen::VectorXf &coordinates)
+void World::addObstacle(const int obstacleId, const Eigen::VectorXd &coordinates)
 {
-    Eigen::Vector3f pos = coordinates.head(3);
-    Eigen::Vector3f rot = coordinates.segment(3, 3);
-    const std::vector<OBBDescription> &obbDescriptions = configParser.getObstacleGeometry();
+    Eigen::Vector3d pos = coordinates.head(3);
+    Eigen::Vector3d rot = coordinates.segment(3, 3);
+    const std::vector<OBBDescription> &obbDescriptions = configParser->getObstacleGeometry();
 
     Object obj = Object::createFromDescription(pos, rot, obbDescriptions);
     addObject(obj, obstacleId, "obstacle", inflateSizeObstacle);
 }
 
-void World::addObject(const Object &obj, const int id, const std::string &type, const float inflateSize)
+void World::addObject(const Object &obj, const int id, const std::string &type, const double inflateSize)
 {
 
     // create bounding boxes to insert in r-tree
@@ -67,7 +67,7 @@ void World::addObject(const Object &obj, const int id, const std::string &type, 
     }
 }
 
-void World::removeObject(const int id, const std::string &type, const int noOfObbs, const float inflateSize)
+void World::removeObject(const int id, const std::string &type, const int noOfObbs, const double inflateSize)
 {
     for (int i = 0; i < noOfObbs; i++)
     {
@@ -78,7 +78,7 @@ void World::removeObject(const int id, const std::string &type, const int noOfOb
     }
 }
 
-bool World::checkPointValidity(const Eigen::Vector3f &point)
+bool World::checkPointValidity(const Eigen::Vector3d &point)
 {
     std::vector<value> potentialHits;
     index.query(boost::geometry::index::contains(point), std::back_inserter(potentialHits));
@@ -98,15 +98,15 @@ bool World::checkPointValidity(const Eigen::Vector3f &point)
     return true;
 }
 
-bool World::checkRayValid(const Eigen::Vector3f &start, const Eigen::Vector3f &end)
+bool World::checkRayValid(const Eigen::Vector3d &start, const Eigen::Vector3d &end)
 {
     // create ray bounding box
     // ToDo how can we make this more efficient
-    Eigen::Matrix<float, 3, 2> ray;
+    Eigen::Matrix<double, 3, 2> ray;
     ray.col(0) = start;
     ray.col(1) = end;
-    Eigen::Vector3f rayMin = ray.rowwise().minCoeff();
-    Eigen::Vector3f rayMax = ray.rowwise().maxCoeff();
+    Eigen::Vector3d rayMin = ray.rowwise().minCoeff();
+    Eigen::Vector3d rayMax = ray.rowwise().maxCoeff();
     box rayBox(rayMin, rayMax);
 
     // find potential hits

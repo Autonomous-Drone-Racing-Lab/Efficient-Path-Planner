@@ -5,25 +5,46 @@
 #include <boost/geometry.hpp>
 #include <boost/geometry/index/rtree.hpp>
 #include <boost/geometry/geometries/register/point.hpp>
+#include <map>
 
 
-// Register Eigen::Vector3f as a point type to Boost Geometry
-BOOST_GEOMETRY_REGISTER_POINT_3D(Eigen::Vector3f, float, boost::geometry::cs::cartesian, x(), y(), z())
+// Register Eigen::Vector3d as a point type to Boost Geometry
+BOOST_GEOMETRY_REGISTER_POINT_3D(Eigen::Vector3d, double, boost::geometry::cs::cartesian, x(), y(), z())
 
 
-typedef Eigen::Vector3f point;
+typedef Eigen::Vector3d point;
 typedef boost::geometry::model::box<point> box;
 typedef std::pair<box, std::string> value;
 typedef boost::geometry::index::rtree<value, boost::geometry::index::quadratic<16>> rtree;
 
 struct OBBDescription
 {
-    Eigen::Vector3f center;
-    Eigen::Vector3f halfSize;
+    Eigen::Vector3d center;
+    Eigen::Vector3d halfSize;
     std::string type;
 };
 
 struct ObjectProperties
 {
-    float height;
+    double height;
+};
+
+struct WorldProperties
+{
+    Eigen::Vector3d lowerBound;
+    Eigen::Vector3d upperBound;
+    std::map<std::string, double> inflateRadius;
+};
+
+struct PathPlannerProperties
+{
+    double optimalityThresholdPercentage;
+    double timeLimitOnline;
+    double timeLimitOffline;
+};
+
+struct TrajectoryGeneratorProperties{
+    double maxVelocity;
+    double maxAcceleration;
+    double samplingInterval;
 };
