@@ -41,6 +41,7 @@ struct PathPlannerProperties
     double optimalityThresholdPercentage;
     double timeLimitOnline;
     double timeLimitOffline;
+    double checkpointGateOffset;
 };
 
 struct TrajectoryGeneratorProperties{

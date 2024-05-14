@@ -46,15 +46,25 @@ bool OBB::checkCollisionWithRay(const Eigen::Vector3d& start, const Eigen::Vecto
     return 0 <= tMin && tMin <= 1 && 0 <= tMax && tMax <= 1;
 }
 
-bool OBB::checkCollisionWithPoint(const Eigen::Vector3d& point, const double inflateSize)const{
+bool OBB::checkCollisionWithPoint(const Eigen::Vector3d& point, const double inflateSize) const {
     // Transform the point into the OBB's local coordinate system
     const Eigen::Vector3d localPoint = rotation.transpose() * (point - center);
-    const Eigen::Vector3d inflatedHalfSize = halfSize + Eigen::Vector3d(inflateSize, inflateSize, inflateSize);
+    Eigen::Vector3d collisionHalfSizes = halfSize;
+    if(shouldBeInflated()){
+       collisionHalfSizes += Eigen::Vector3d(inflateSize, inflateSize, inflateSize);
+    }
+    
     
     // Check if the point is within the inflated bounding box
-    return (std::abs(localPoint.x()) <= inflatedHalfSize.x()) &&
-               (std::abs(localPoint.y()) <= inflatedHalfSize.y()) &&
-               (std::abs(localPoint.z()) <= inflatedHalfSize.z());
+    const bool isColliding = (std::abs(localPoint.x()) <= collisionHalfSizes.x()) &&
+               (std::abs(localPoint.y()) <= collisionHalfSizes.y()) &&
+               (std::abs(localPoint.z()) <= collisionHalfSizes.z());
+
+    if(isColliding){
+        std::cout << "Collision with obb. Center: " << center.transpose() << " HalfSize: " << collisionHalfSizes.transpose() << "Type: " << type << std::endl;
+        std::cout <<  "Local point: " << localPoint.transpose() << std::endl;
+    }
+    return isColliding;
 }
 
 
@@ -80,8 +90,12 @@ box OBB::getAABB(const double inflateSize) const {
 
     // Inflate the AABB
     const Eigen::Vector3d inflateSizeVec(inflateSize, inflateSize, inflateSize);
-    minCorner -= inflateSizeVec;
-    maxCorner += inflateSizeVec;
+    // conly collision objects are inflated, filling objects are not
+    if(shouldBeInflated()){
+            minCorner -= inflateSizeVec;
+            maxCorner += inflateSizeVec;
+    }
+
 
     return box(minCorner, maxCorner);
 }

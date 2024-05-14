@@ -63,7 +63,7 @@ PathPlanner::PathPlanner(const Eigen::MatrixXd &nominalGatePositionAndType, cons
     si->setup();
 }
 
-Eigen::MatrixXd PathPlanner::planPath(const Eigen::Vector3d &start, const Eigen::Vector3d &goal, const double timeLimit)
+bool PathPlanner::planPath(const Eigen::Vector3d &start, const Eigen::Vector3d &goal, const double timeLimit, Eigen::MatrixXd& resultPath)
 {
     // set start and goal
     ob::ScopedState<> startState(space);
@@ -99,21 +99,22 @@ Eigen::MatrixXd PathPlanner::planPath(const Eigen::Vector3d &start, const Eigen:
         pathSimplifier.reduceVertices(*path); 
 
         // Convert the path to an Eigen::MatrixXd
-        Eigen::MatrixXd outputPath(path->getStateCount(), 3); // Dimensions: number of points x space dimensions (3D)
+        
+        resultPath.resize(path->getStateCount(), 3); // Dimensions: number of points x space dimensions (3D)
         for (std::size_t i = 0; i < path->getStateCount(); ++i)
         {
             const auto *state = path->getState(i)->as<ob::RealVectorStateSpace::StateType>();
-            outputPath(i, 0) = state->values[0];
-            outputPath(i, 1) = state->values[1];
-            outputPath(i, 2) = state->values[2];
+            resultPath(i, 0) = state->values[0];
+            resultPath(i, 1) = state->values[1];
+            resultPath(i, 2) = state->values[2];
         }
 
-        return outputPath;
+        return true;
     }
     else
     {
         // Return an empty matrix if planning failed
-        return Eigen::MatrixXd(0, 3);
+        return false;
     }
 }
 

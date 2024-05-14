@@ -51,10 +51,16 @@ target_link_libraries(${PROJECT_NAME}
 #target_link_libraries(polynomial_trajectory PRIVATE ${PROJECT_NAME})
 
 # Compile test_1.cpp to an executable
-add_executable(test_1 src/test_1.cpp)
-target_link_libraries(test_1 ${PROJECT_NAME})
+# add_executable(test_1 src/test_1.cpp)
+# target_link_libraries(test_1 ${PROJECT_NAME})
 
-# Compile test_2.cpp to an executable
-add_executable(test_2 src/test_objects.cpp)
-target_link_libraries(test_2 ${PROJECT_NAME})
+# # Compile test_2.cpp to an executable
+# add_executable(test_2 src/test_objects.cpp)
+# target_link_libraries(test_2 ${PROJECT_NAME})
+
+add_subdirectory(external/pybind11)
+pybind11_add_module(online_traj_planner src/pybind.cpp)
+
+# Link the executable against the library
+target_link_libraries(online_traj_planner PRIVATE ${PROJECT_NAME})
 

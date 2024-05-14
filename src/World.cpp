@@ -19,7 +19,7 @@ void World::addGatePrivateOperation(const int gateId, const Eigen::VectorXd &coo
     const ObjectProperties &objectProperties = configParser->getObjectPropertiesByTypeId(type);
 
     if (subtractGateHeight)
-    {
+    {   
         pos(2) -= objectProperties.height;
     }
 
@@ -88,9 +88,10 @@ bool World::checkPointValidity(const Eigen::Vector3d &point)
         OBB obb = obbs.at(v.second);
 
         bool isGate = v.second.find("gate") != std::string::npos;
-        // ToDo, handle proper inflateSize
+
         if (obb.checkCollisionWithPoint(point, isGate ? inflateSizeGate : inflateSizeObstacle))
-        {
+        {   
+            std::cout << "Collision with " << v.second << std::endl;
             return false;
         }
     }

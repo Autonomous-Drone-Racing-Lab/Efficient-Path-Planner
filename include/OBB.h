@@ -20,4 +20,7 @@ public:
     Eigen::Matrix3d rotation = Eigen::Matrix3d::Identity(); // No rotation on initialization
     std::string type;
     box boundingBox;
+    bool shouldBeInflated()const{
+        return type == "collision";
+    }
 };

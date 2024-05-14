@@ -65,7 +65,8 @@ void ConfigParser::parseGeometries(json& config)
         for (auto& obb : component.value())
         {
             Eigen::Vector3d position = Eigen::Vector3d(obb["position"][0], obb["position"][1], obb["position"][2]);
-            Eigen::Vector3d halfSize = Eigen::Vector3d(obb["size"][0], obb["size"][1], obb["size"][2]);
+            Eigen::Vector3d halfSize = Eigen::Vector3d(obb["size"][0] , obb["size"][1], obb["size"][2]);
+            halfSize /= 2;
             std::string type = obb["type"];
 
             obbDescriptions.push_back({position, halfSize, type});
@@ -98,6 +99,7 @@ void ConfigParser::parsePathPlannerProperties(json& config)
     pathPlannerProperties.optimalityThresholdPercentage = config["path_planner_properties"]["optimality_threshold_percentage"];
     pathPlannerProperties.timeLimitOnline = config["path_planner_properties"]["time_limit_online"];
     pathPlannerProperties.timeLimitOffline = config["path_planner_properties"]["time_limit_offline"];
+    pathPlannerProperties.checkpointGateOffset = config["path_planner_properties"]["checkpoint_gate_offset"];
 }
 
 void ConfigParser::parseTrajectoryGeneratorProperties(json& config)

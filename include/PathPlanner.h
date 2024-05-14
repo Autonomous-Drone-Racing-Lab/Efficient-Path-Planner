@@ -18,7 +18,7 @@ class PathPlanner{
     PathPlanner(const Eigen::MatrixXd& nominalGatePositionAndType, const Eigen::MatrixXd& nominalObstaclePosition, std::shared_ptr<ConfigParser> configParser);
 
 
-    Eigen::MatrixXd planPath(const Eigen::Vector3d& start, const Eigen::Vector3d& goal, const double timeLimit);
+    bool planPath(const Eigen::Vector3d& start, const Eigen::Vector3d& goal, const double timeLimit, Eigen::MatrixXd& resultPath);
 
     void updateGatePos(const int gateId, const Eigen::Vector3d& newPose, const bool subtractHeight);
 
