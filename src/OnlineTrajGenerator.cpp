@@ -1,6 +1,7 @@
 #include "OnlineTrajGenerator.h"
 #include <iostream>
 #include "poly_traj/trajectory_generator.h"
+#include <fstream>
 
 OnlineTrajGenerator::OnlineTrajGenerator(const Eigen::Vector3d start, const Eigen::Vector3d goal, const Eigen::MatrixXd &nominalGatePositionAndType, const Eigen::MatrixXd &nominalObstaclePosition, const std::string &configPath)
     : configParser(std::make_shared<ConfigParser>(configPath)),
@@ -60,7 +61,7 @@ void OnlineTrajGenerator::preComputeTraj(const double takeoffTime)
     {
         const Eigen::Vector3d &start = checkpoints[i];
         const Eigen::Vector3d &goal = checkpoints[i + 1];
-        Eigen::MatrixXd path;
+        std::vector<Eigen::Vector3d> path;
         const bool pathFound = pathPlanner.planPath(start, goal, timeLimit, path);
         if (!pathFound)
         {
@@ -70,17 +71,29 @@ void OnlineTrajGenerator::preComputeTraj(const double takeoffTime)
         pathSegments.push_back(path);
     }
 
+    // print path segments
+    for(int i = 0; i < pathSegments.size(); i++){
+        std::cout << "Path segment " << i << std::endl;
+        for(const auto &waypoint : pathSegments[i]){
+            std::cout << waypoint.transpose() << std::endl;
+        }
+    }
+
+
+    const std::vector<Eigen::Vector3d> prunedPath = pathPlanner.pruneWaypoints(pathSegments);
+    pathWriter.writePath(prunedPath);
+
     const double v_max = configParser->getTrajectoryGeneratorProperties().maxVelocity;
     const double a_max = configParser->getTrajectoryGeneratorProperties().maxAcceleration;
     const double samplingInterval = configParser->getTrajectoryGeneratorProperties().samplingInterval;
 
     const Eigen::Vector3d initialVel = Eigen::Vector3d::Zero();
     const Eigen::Vector3d initialAcc = Eigen::Vector3d::Zero();
-    poly_traj::generateTrajectory(pathSegments, v_max, a_max, samplingInterval, takeoffTime, initialVel, initialAcc, plannedTraj);
+    poly_traj::generateTrajectory(prunedPath, v_max, a_max, samplingInterval, takeoffTime, initialVel, initialAcc, plannedTraj);
 }
 
 bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd &newPose, const Eigen::Vector3d &dronePos, const bool nextGateWithinRange, const double flightTime)
-{
+{   
     bool gateHasOutstandingUpdated = false;
     if (outstandingGateUpdates.find(gateId) != outstandingGateUpdates.end())
     {
@@ -138,8 +151,8 @@ bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd 
     }
     
     // Recompute first segment, from drone to first checkpoint
-    Eigen::MatrixXd preSegmentPath;
-    std::cout << "Recomputing path from drone to first checkpoint, i.e. from" << dronePos.transpose() << " to " << checkpoints[checkpointIdPre].transpose() << std::endl;
+    std::vector<Eigen::Vector3d> preSegmentPath;
+    std::cout << "Recomputing path from drone to firsty checkpoint, i.e. from" << dronePos.transpose() << " to " << checkpoints[checkpointIdPre].transpose() << std::endl;
     const bool preSegmentResult = pathPlanner.planPath(dronePos, checkpoints[checkpointIdPre], configParser->getPathPlannerProperties().timeLimitOnline, preSegmentPath);
     if (!preSegmentResult)
     {
@@ -154,7 +167,7 @@ bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd 
     pathSegments[segmentIdPre] = preSegmentPath;
 
     // Recompute second segment, from post checkpoint to next gate
-    Eigen::MatrixXd postSegmentPath;
+    std::vector<Eigen::Vector3d> postSegmentPath;
     std::cout << "Recomputing path from post checkpoint to next gate, i.e. from" << checkpoints[checkpointIdPost].transpose() << " to " << checkpoints[checkpointIdNextGate].transpose() << std::endl;
     const bool postSegmentResult = pathPlanner.planPath(checkpoints[checkpointIdPost], checkpoints[checkpointIdNextGate], configParser->getPathPlannerProperties().timeLimitOnline, postSegmentPath);
     if (!postSegmentResult)
@@ -172,16 +185,19 @@ bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd 
     refVel << referenceState(1), referenceState(4), referenceState(7);
     refAcc << referenceState(2), referenceState(5), referenceState(8);
 
-    std::vector<Eigen::MatrixXd> pathSegmentsSlice;
+    std::vector<std::vector<Eigen::Vector3d>> pathSegmentsSlice;
     for (int i = segmentIdPre; i < pathSegments.size(); i++)
     {
         pathSegmentsSlice.push_back(pathSegments[i]);
     }
 
+    const std::vector<Eigen::Vector3d> prunedWaypoints = pathPlanner.pruneWaypoints(pathSegmentsSlice);
+    pathWriter.writePath(prunedWaypoints);
+
     const double v_max = configParser->getTrajectoryGeneratorProperties().maxVelocity;
     const double a_max = configParser->getTrajectoryGeneratorProperties().maxAcceleration;
     const double samplingInterval = configParser->getTrajectoryGeneratorProperties().samplingInterval;
-    poly_traj::generateTrajectory(pathSegmentsSlice, v_max, a_max, samplingInterval, flightTime, refVel, refAcc, plannedTraj);
+    poly_traj::generateTrajectory(prunedWaypoints, v_max, a_max, samplingInterval, flightTime, refVel, refAcc, plannedTraj);
 
     return true;
 }
@@ -224,3 +240,28 @@ Eigen::MatrixXd OnlineTrajGenerator::getPlannedTraj() const
 
     return plannedTraj;
 }
+
+// void OnlineTrajGenerator::storePathSegmentsToFile(const std::string &filename, const int startSegment)
+// {
+//  std::ofstream file(filename);
+//      if (!file.is_open())
+//     {
+//         std::cerr << "Failed to open file for writing: " << filename << std::endl;
+//         return;
+//     }
+
+//     for (int i = startSegment; i < pathSegments.size(); i++)
+//     {
+//         const std::vector<Eigen::Vector3d> &segment = pathSegments[i];
+//         for (const auto& waypoint: segment)
+//         {
+//             for (int k = 0; k < 3; k++)
+//             {
+//                 file << waypoint(k) << " ";
+//             }
+//             file << std::endl;
+//         }
+//     }
+//     file.close();
+//     std::cout << "Stored path segments to " << filename << std::endl;
+// }

@@ -68,8 +68,9 @@ void ConfigParser::parseGeometries(json& config)
             Eigen::Vector3d halfSize = Eigen::Vector3d(obb["size"][0] , obb["size"][1], obb["size"][2]);
             halfSize /= 2;
             std::string type = obb["type"];
+            std::string name = obb["name"];
 
-            obbDescriptions.push_back({position, halfSize, type});
+            obbDescriptions.push_back({position, halfSize, type, name});
         }
 
         std::string componentName = component.key();

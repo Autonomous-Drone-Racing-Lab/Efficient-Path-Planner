@@ -5,7 +5,7 @@
 #include <string>
 #include <iostream>
 
-OBB::OBB(const Eigen::Vector3d &center, const Eigen::Vector3d &halfSize, const std::string &type) : center(center), halfSize(halfSize), type(type) {}
+OBB::OBB(const Eigen::Vector3d &center, const Eigen::Vector3d &halfSize, const std::string &type, const std::string&name) :  center(center), halfSize(halfSize), type(type), name(name){}
 
 bool OBB::checkCollisionWithRay(const Eigen::Vector3d& start, const Eigen::Vector3d& end, const double inflateSize)const{
     // Transform the ray into the OBB's local coordinate system
@@ -50,9 +50,12 @@ bool OBB::checkCollisionWithPoint(const Eigen::Vector3d& point, const double inf
     // Transform the point into the OBB's local coordinate system
     const Eigen::Vector3d localPoint = rotation.transpose() * (point - center);
     Eigen::Vector3d collisionHalfSizes = halfSize;
+    
     if(shouldBeInflated()){
        collisionHalfSizes += Eigen::Vector3d(inflateSize, inflateSize, inflateSize);
     }
+
+    
     
     
     // Check if the point is within the inflated bounding box
@@ -61,9 +64,13 @@ bool OBB::checkCollisionWithPoint(const Eigen::Vector3d& point, const double inf
                (std::abs(localPoint.z()) <= collisionHalfSizes.z());
 
     if(isColliding){
-        std::cout << "Collision with obb. Center: " << center.transpose() << " HalfSize: " << collisionHalfSizes.transpose() << "Type: " << type << std::endl;
-        std::cout <<  "Local point: " << localPoint.transpose() << std::endl;
+        std::cout << "Collision of object " << name << " with point " << point << std::endl;
+        std::cout << "Local point: " << localPoint.transpose() << std::endl;
+        std::cout << "Half sizes: " << collisionHalfSizes.transpose() << std::endl;
+        std::cout << "Center: " << center.transpose() << std::endl;
+        std::cout << "Rotation: \n" << rotation << std::endl;
     }
+
     return isColliding;
 }
 
@@ -84,7 +91,7 @@ box OBB::getAABB(const double inflateSize) const {
     // Rotate the corners
     // Todo, with or whithout transpose?
     const Eigen::Matrix<double, 3, 8> centerStacked = center.replicate(1, 8);
-    const Eigen::Matrix3Xd cornersGlobalFrame = (rotation * corners)+ centerStacked;
+    const Eigen::Matrix3Xd cornersGlobalFrame = rotation * corners + centerStacked;
     Eigen::Vector3d minCorner = cornersGlobalFrame.rowwise().minCoeff();
     Eigen::Vector3d maxCorner = cornersGlobalFrame.rowwise().maxCoeff();
 

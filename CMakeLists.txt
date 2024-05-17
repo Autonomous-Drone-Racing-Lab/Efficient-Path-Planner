@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.24)
 project(path_planner)
 
 # Set C++ standard
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
@@ -25,6 +25,7 @@ add_library(${PROJECT_NAME} STATIC
     src/MotionValidator.cpp
     src/StateValidator.cpp
     src/OnlineTrajGenerator.cpp
+    src/PathWriter.cpp
 )
 
 # Include directories scoped to the target
@@ -55,8 +56,8 @@ target_link_libraries(${PROJECT_NAME}
 # target_link_libraries(test_1 ${PROJECT_NAME})
 
 # # Compile test_2.cpp to an executable
-# add_executable(test_2 src/test_objects.cpp)
-# target_link_libraries(test_2 ${PROJECT_NAME})
+add_executable(test_2 src/test_objects.cpp)
+target_link_libraries(test_2 ${PROJECT_NAME})
 
 add_subdirectory(external/pybind11)
 pybind11_add_module(online_traj_planner src/pybind.cpp)

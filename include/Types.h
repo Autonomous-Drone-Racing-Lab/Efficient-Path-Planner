@@ -22,6 +22,7 @@ struct OBBDescription
     Eigen::Vector3d center;
     Eigen::Vector3d halfSize;
     std::string type;
+    std::string name;
 };
 
 struct ObjectProperties

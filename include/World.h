@@ -25,7 +25,7 @@ public:
     void addObstacle(const int obstacleId, const Eigen::VectorXd& coordinates);
 
     bool checkPointValidity(const Eigen::Vector3d& point);
-    bool checkRayValid(const Eigen::Vector3d& start, const Eigen::Vector3d& end);
+    bool checkRayValid(const Eigen::Vector3d& start, const Eigen::Vector3d& end, const bool canPassGate=false);
     
 
 

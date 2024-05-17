@@ -99,7 +99,7 @@ bool World::checkPointValidity(const Eigen::Vector3d &point)
     return true;
 }
 
-bool World::checkRayValid(const Eigen::Vector3d &start, const Eigen::Vector3d &end)
+bool World::checkRayValid(const Eigen::Vector3d &start, const Eigen::Vector3d &end, const bool canPassGate)
 {
     // create ray bounding box
     // ToDo how can we make this more efficient
@@ -118,8 +118,16 @@ bool World::checkRayValid(const Eigen::Vector3d &start, const Eigen::Vector3d &e
     {
         OBB obb = obbs.at(v.second);
         bool isGate = v.second.find("gate") != std::string::npos;
-        // ToDo, handle proper inflateSize
-        if (obb.checkCollisionWithRay(start, end, isGate ? inflateSizeGate : inflateSizeObstacle))
+        // Allow to pass gates if canPassGate is true
+        if(obb.type=="filling" and canPassGate){
+            continue;
+        }
+
+        double inflateSize = isGate ? inflateSizeGate : inflateSizeObstacle;
+        if(canPassGate){
+            inflateSize *= 0.8;
+        }
+        if (obb.checkCollisionWithRay(start, end, inflateSize))
         {
             return false;
         }

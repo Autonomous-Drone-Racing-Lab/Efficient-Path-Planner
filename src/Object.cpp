@@ -22,7 +22,7 @@ Object Object::createFromDescription(const Eigen::Vector3d& globalCenter, const 
     std::vector<OBB> obbs;
     for (const OBBDescription &obbDescription : obbDescriptions)
     {
-        obbs.push_back(OBB(obbDescription.center, obbDescription.halfSize, obbDescription.type));
+        obbs.push_back(OBB(obbDescription.center, obbDescription.halfSize, obbDescription.type, obbDescription.name));
     }
 
     // create rotation matrix from angles in global rotation (angles in radians)
