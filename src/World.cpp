@@ -78,7 +78,7 @@ void World::removeObject(const int id, const std::string &type, const int noOfOb
     }
 }
 
-bool World::checkPointValidity(const Eigen::Vector3d &point)
+bool World::checkPointValidity(const Eigen::Vector3d &point, const double inflateScalingFactor, const bool canPassGate)
 {
     std::vector<value> potentialHits;
     index.query(boost::geometry::index::contains(point), std::back_inserter(potentialHits));
@@ -89,7 +89,14 @@ bool World::checkPointValidity(const Eigen::Vector3d &point)
 
         bool isGate = v.second.find("gate") != std::string::npos;
 
-        if (obb.checkCollisionWithPoint(point, isGate ? inflateSizeGate : inflateSizeObstacle))
+        double inflateSize = isGate ? inflateSizeGate : inflateSizeObstacle;
+        inflateSize *= inflateScalingFactor;
+        
+        if(obb.type=="filling" and canPassGate){
+            continue;
+        }
+
+        if (obb.checkCollisionWithPoint(point, inflateSize))
         {   
             std::cout << "Collision with " << v.second << std::endl;
             return false;
@@ -125,7 +132,7 @@ bool World::checkRayValid(const Eigen::Vector3d &start, const Eigen::Vector3d &e
 
         double inflateSize = isGate ? inflateSizeGate : inflateSizeObstacle;
         if(canPassGate){
-            inflateSize *= 0.8;
+            inflateSize *= 1;
         }
         if (obb.checkCollisionWithRay(start, end, inflateSize))
         {

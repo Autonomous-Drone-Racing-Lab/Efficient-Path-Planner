@@ -24,7 +24,7 @@
 namespace ob = ompl::base;
 PathPlanner::PathPlanner(const Eigen::MatrixXd &nominalGatePositionAndType, const Eigen::MatrixXd &nominalObstaclePosition, std::shared_ptr<ConfigParser> configParser)
     : configParser(configParser)
-{   
+{
 
     worldPtr = std::make_shared<World>(configParser);
 
@@ -41,10 +41,9 @@ PathPlanner::PathPlanner(const Eigen::MatrixXd &nominalGatePositionAndType, cons
     // Todo, potential memory leak
     si = ob::SpaceInformationPtr(new ob::SpaceInformation(space));
 
-   
     // parse nomial gates
     for (int i = 0; i < nominalGatePositionAndType.rows(); i++)
-    {   
+    {
         std::cout << "Adding gate " << i << std::endl;
         Eigen::VectorXd gate = nominalGatePositionAndType.row(i);
         worldPtr->addGate(i, gate);
@@ -63,14 +62,15 @@ PathPlanner::PathPlanner(const Eigen::MatrixXd &nominalGatePositionAndType, cons
     si->setup();
 }
 
-bool PathPlanner::planPath(const Eigen::Vector3d &start, const Eigen::Vector3d &goal, const double timeLimit, std::vector<Eigen::Vector3d>& resultPath)
+bool PathPlanner::planPath(const Eigen::Vector3d &start, const Eigen::Vector3d &goal, const double timeLimit, std::vector<Eigen::Vector3d> &resultPath)
 {
     // assert result path is empty
-    if(!resultPath.empty()){
+    if (!resultPath.empty())
+    {
         resultPath.clear();
         std::cerr << "Result path not empty, clearing it" << std::endl;
     }
-    
+
     // set start and goal
     ob::ScopedState<> startState(space);
     startState->as<ob::RealVectorStateSpace::StateType>()->values[0] = start(0);
@@ -88,8 +88,8 @@ bool PathPlanner::planPath(const Eigen::Vector3d &start, const Eigen::Vector3d &
 
     // create planner
     // ob::PlannerPtr planner(new ompl::geometric::RRTstar(si));
-     ob::PlannerPtr planner(new ompl::geometric::InformedRRTstar(si));
-   
+    ob::PlannerPtr planner(new ompl::geometric::InformedRRTstar(si));
+
     planner->setProblemDefinition(pdef);
     planner->setup();
 
@@ -101,8 +101,8 @@ bool PathPlanner::planPath(const Eigen::Vector3d &start, const Eigen::Vector3d &
         // Get the path as geometric Path
         auto path = pdef->getSolutionPath()->as<ompl::geometric::PathGeometric>();
         ompl::geometric::PathSimplifier pathSimplifier(si);
-        pathSimplifier.reduceVertices(*path); 
-        //pathSimplifier.smoothBSpline(*path, 3);
+        pathSimplifier.reduceVertices(*path);
+        // pathSimplifier.smoothBSpline(*path, 5);
 
         // Convert the path to an Eigen::MatrixXd
         resultPath.resize(path->getStateCount()); // Dimensions: number of points x space dimensions (3D)
@@ -137,33 +137,36 @@ void PathPlanner::updateGatePos(const int gateId, const Eigen::Vector3d &newPose
     worldPtr->updateGatePosition(gateId, newPose, subtractHeight);
 }
 
-std::vector<Eigen::Vector3d> PathPlanner::pruneWaypoints(const std::vector<std::vector<Eigen::Vector3d>> &waypoints){
+std::vector<Eigen::Vector3d> PathPlanner::pruneWaypoints(const std::vector<std::vector<Eigen::Vector3d>> &waypoints)
+{
     // prune waypoints that are not necessary, because it could be skipped by connecting to the next waypoint in a straight line
     // Todo hanle edge cases, e.g. length is one, ...
-    
+
     std::vector<Eigen::Vector3d> waypointsFlattened;
-    for(const auto &segment : waypoints){
-        for(const auto &waypoint : segment){
+    for (const auto &segment : waypoints)
+    {
+        for (const auto &waypoint : segment)
+        {
             waypointsFlattened.push_back(waypoint);
         }
     }
 
-    if(waypointsFlattened.size() < 3){
+    if (waypointsFlattened.size() < 3)
+    {
         return waypointsFlattened;
     }
 
     std::vector<Eigen::Vector3d> prunedWaypoints;
     prunedWaypoints.push_back(waypointsFlattened[0]); // add first waypoint
-    std::cout << "Adding first waypoint to pruned waypoints" << waypointsFlattened[0].transpose() << std::endl;
-    
+
     int referenceWaypointIdx = 0;
-    int waypointIdx = 1;
-    while(waypointIdx < waypointsFlattened.size()){
+    int waypointIdx = 2;
+    while (waypointIdx < waypointsFlattened.size())
+    {
         const Eigen::Vector3d referenceWaypoint = waypointsFlattened[referenceWaypointIdx];
         const Eigen::Vector3d currentWaypoint = waypointsFlattened[waypointIdx];
-        std::cout << "checkin ray from index " << referenceWaypointIdx << " to " << waypointIdx << " i.e., " << referenceWaypoint.transpose() << " to " << currentWaypoint.transpose() << std::endl;
-        if(!worldPtr->checkRayValid(referenceWaypoint, currentWaypoint, true)){
-           std::cout << "Ray not valid, adding last valid waypoin to pruned waypoints" << std::endl;
+        if (!worldPtr->checkRayValid(referenceWaypoint, currentWaypoint, true))
+        {
             const Eigen::Vector3d lastValidWaypoint = waypointsFlattened[waypointIdx - 1];
             prunedWaypoints.push_back(lastValidWaypoint);
             referenceWaypointIdx = waypointIdx - 1;
@@ -173,10 +176,93 @@ std::vector<Eigen::Vector3d> PathPlanner::pruneWaypoints(const std::vector<std::
 
     int waypintsBefore = waypointsFlattened.size();
     int waypointsAfter = prunedWaypoints.size();
-    std::cout << "Pruned "<< waypintsBefore - waypointsAfter <<" waypoints from " << waypintsBefore << " to " << waypointsAfter << std::endl;
+    std::cout << "Pruned " << waypintsBefore - waypointsAfter << " waypoints from " << waypintsBefore << " to " << waypointsAfter << std::endl;
 
     // adding last waypoint necessary as path must end at goal. No risk of duplication as last waypoint never added in loop from before
     prunedWaypoints.push_back(waypointsFlattened[waypointsFlattened.size() - 1]); // add last waypoint
 
     return prunedWaypoints;
+}
+
+std::vector<Eigen::Vector3d> PathPlanner::includeGates(const std::vector<std::vector<Eigen::Vector3d>> &waypoints) const
+{
+    std::vector<Eigen::Vector3d> waypointsFlattened;
+    for (int i = 0; i < waypoints.size(); i++)
+    {
+        for (int j = 0; j < waypoints[i].size(); j++)
+        {
+            waypointsFlattened.push_back(waypoints[i][j]);
+        }
+
+        // add gate
+        if (i < waypoints.size() - 1)
+        {
+            const Eigen::Vector3d gate = (waypoints[i][waypoints[i].size() - 1] + waypoints[i + 1][0]) / 2;
+            waypointsFlattened.push_back(gate);
+        }
+    }
+
+    return waypointsFlattened;
+}
+
+std::set<int> PathPlanner::checkTrajectoryValidityAndReturnCollisionIdx(const Eigen::MatrixXd &trajectoryPoints, const std::vector<Eigen::Vector3d> &prunedPath, int number_check_next_samples) const
+{
+    // set to make sure same index is only inserted once
+    std::set<int> insertionIndice;
+
+    int numberSamples = trajectoryPoints.rows();
+    if (number_check_next_samples != -1)
+    {
+        numberSamples = std::min(numberSamples, number_check_next_samples);
+    }
+
+    for (int rowIdx = 0; rowIdx < numberSamples; rowIdx++)
+    {
+        const Eigen::Vector3d trajectoryPoint = trajectoryPoints.row(rowIdx);
+        if (worldPtr->checkPointValidity(trajectoryPoint, 0.85, true))
+        {
+            continue;
+        }
+
+        // find the closest point in the pruned path
+        double minDistance = std::numeric_limits<double>::max();
+        int closestIdx = -1;
+        for (int i = 0; i < prunedPath.size(); i++)
+        {
+            const double distance = (trajectoryPoint - prunedPath[i]).norm();
+            if (distance < minDistance)
+            {
+                minDistance = distance;
+                closestIdx = i;
+            }
+        }
+
+        // check if the collision comes after or before point
+        if (closestIdx == 0)
+        {
+            insertionIndice.insert(0);
+            continue;
+        }
+        if (closestIdx == prunedPath.size() - 1)
+        {
+            insertionIndice.insert(prunedPath.size() - 1);
+            continue;
+        }
+
+        const double preDistance = (trajectoryPoint - prunedPath[closestIdx - 1]).norm();
+        const double postDistance = (trajectoryPoint - prunedPath[closestIdx + 1]).norm();
+        // Todo this check is not ideal and probably not 100 percent correct
+        // case a point is close to previous than to next, implying point is between previous and current point
+        if (preDistance < postDistance)
+        {
+            insertionIndice.insert(closestIdx);
+        }
+        // case a point is close to next than to previous, implying point is between current and next point
+        else
+        {
+            insertionIndice.insert(closestIdx + 1);
+        }
+    }
+
+    return insertionIndice;
 }

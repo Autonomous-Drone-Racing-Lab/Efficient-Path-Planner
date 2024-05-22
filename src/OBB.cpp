@@ -63,13 +63,13 @@ bool OBB::checkCollisionWithPoint(const Eigen::Vector3d& point, const double inf
                (std::abs(localPoint.y()) <= collisionHalfSizes.y()) &&
                (std::abs(localPoint.z()) <= collisionHalfSizes.z());
 
-    if(isColliding){
-        std::cout << "Collision of object " << name << " with point " << point << std::endl;
-        std::cout << "Local point: " << localPoint.transpose() << std::endl;
-        std::cout << "Half sizes: " << collisionHalfSizes.transpose() << std::endl;
-        std::cout << "Center: " << center.transpose() << std::endl;
-        std::cout << "Rotation: \n" << rotation << std::endl;
-    }
+    // if(isColliding){
+    //     std::cout << "Collision of object " << name << " with point " << point << std::endl;
+    //     std::cout << "Local point: " << localPoint.transpose() << std::endl;
+    //     std::cout << "Half sizes: " << collisionHalfSizes.transpose() << std::endl;
+    //     std::cout << "Center: " << center.transpose() << std::endl;
+    //     std::cout << "Rotation: \n" << rotation << std::endl;
+    // }
 
     return isColliding;
 }

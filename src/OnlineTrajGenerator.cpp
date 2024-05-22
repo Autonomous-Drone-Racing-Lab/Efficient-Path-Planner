@@ -72,15 +72,15 @@ void OnlineTrajGenerator::preComputeTraj(const double takeoffTime)
     }
 
     // print path segments
-    for(int i = 0; i < pathSegments.size(); i++){
-        std::cout << "Path segment " << i << std::endl;
-        for(const auto &waypoint : pathSegments[i]){
-            std::cout << waypoint.transpose() << std::endl;
-        }
-    }
+    // for(int i = 0; i < pathSegments.size(); i++){
+    //     std::cout << "Path segment " << i << std::endl;
+    //     for(const auto &waypoint : pathSegments[i]){
+    //         std::cout << waypoint.transpose() << std::endl;
+    //     }
+    // }
 
 
-    const std::vector<Eigen::Vector3d> prunedPath = pathPlanner.pruneWaypoints(pathSegments);
+    const std::vector<Eigen::Vector3d> prunedPath = pathPlanner.includeGates(pathSegments);
     pathWriter.writePath(prunedPath);
 
     const double v_max = configParser->getTrajectoryGeneratorProperties().maxVelocity;
@@ -111,7 +111,7 @@ bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd 
     const int checkpointIdPost = 2 * gateId + 2;
     const int checkpointIdNextGate = 2 * gateId + 3;
 
-    if(!gateHasOutstandingUpdated){
+   // if(!gateHasOutstandingUpdated){
     if (nextGateWithinRange)
     {
         gatesObservedWithinRange.insert(gateId);
@@ -148,7 +148,7 @@ bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd 
     const Eigen::VectorXd lateCheckpoint = center + checkpointOffset * normal;
     checkpoints[checkpointIdPre] = earlyCheckpoint;
     checkpoints[checkpointIdPost] = lateCheckpoint;
-    }
+    //}
     
     // Recompute first segment, from drone to first checkpoint
     std::vector<Eigen::Vector3d> preSegmentPath;
@@ -191,13 +191,50 @@ bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd 
         pathSegmentsSlice.push_back(pathSegments[i]);
     }
 
-    const std::vector<Eigen::Vector3d> prunedWaypoints = pathPlanner.pruneWaypoints(pathSegmentsSlice);
+    std::vector<Eigen::Vector3d> prunedWaypoints = pathPlanner.includeGates(pathSegmentsSlice);
     pathWriter.writePath(prunedWaypoints);
 
     const double v_max = configParser->getTrajectoryGeneratorProperties().maxVelocity;
     const double a_max = configParser->getTrajectoryGeneratorProperties().maxAcceleration;
     const double samplingInterval = configParser->getTrajectoryGeneratorProperties().samplingInterval;
-    poly_traj::generateTrajectory(prunedWaypoints, v_max, a_max, samplingInterval, flightTime, refVel, refAcc, plannedTraj);
+    Eigen::MatrixXd traj;
+    poly_traj::generateTrajectory(prunedWaypoints, v_max, a_max, samplingInterval, flightTime, refVel, refAcc, traj);
+    std::set<int> insertionIndice;
+    do{
+        int no_check_next_samples = 1.2 / configParser->getTrajectoryGeneratorProperties().samplingInterval;
+        insertionIndice = pathPlanner.checkTrajectoryValidityAndReturnCollisionIdx(traj, prunedWaypoints, no_check_next_samples);
+
+        std::cout << "Trajectory invalid, inserting " << insertionIndice.size() << " waypoints" << std::endl;
+
+        for(const auto &idx: insertionIndice){
+            const Eigen::Vector3d& preWaypoint = prunedWaypoints[idx];
+            const Eigen::Vector3d& postWaypoint = prunedWaypoints[idx + 1];
+            const Eigen::Vector3d insertedWaypoint = (preWaypoint + postWaypoint) / 2;
+            
+            prunedWaypoints.insert(prunedWaypoints.begin() + idx + 1, insertedWaypoint);
+        }
+
+        // prune waypoints to close to one another
+        std::vector<Eigen::Vector3d> waypointsDuplicatesRemoved;
+        waypointsDuplicatesRemoved.push_back(prunedWaypoints[0]);
+
+        Eigen::Vector3d lastWaypoint = prunedWaypoints[0];
+        for(int i = 1; i < prunedWaypoints.size(); i++){
+            const Eigen::Vector3d& currentWaypoint = prunedWaypoints[i];
+            if((currentWaypoint - lastWaypoint).norm() > 0.01){
+                waypointsDuplicatesRemoved.push_back(currentWaypoint);
+                lastWaypoint = currentWaypoint;
+            }
+        }
+
+        prunedWaypoints = waypointsDuplicatesRemoved;
+        pathWriter.writePath(prunedWaypoints);
+
+        poly_traj::generateTrajectory(prunedWaypoints, v_max, a_max, samplingInterval, flightTime, refVel, refAcc, traj);
+
+    }while(insertionIndice.size() > 0);
+
+    plannedTraj = traj;
 
     return true;
 }
