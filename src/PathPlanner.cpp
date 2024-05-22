@@ -219,7 +219,7 @@ std::set<int> PathPlanner::checkTrajectoryValidityAndReturnCollisionIdx(const Ei
     for (int rowIdx = 0; rowIdx < numberSamples; rowIdx++)
     {
         const Eigen::Vector3d trajectoryPoint = trajectoryPoints.row(rowIdx);
-        if (worldPtr->checkPointValidity(trajectoryPoint, 0.85, true))
+        if (worldPtr->checkPointValidity(trajectoryPoint, 0.7, true))
         {
             continue;
         }
