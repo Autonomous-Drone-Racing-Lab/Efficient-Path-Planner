@@ -200,39 +200,39 @@ bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd 
     Eigen::MatrixXd traj;
     poly_traj::generateTrajectory(prunedWaypoints, v_max, a_max, samplingInterval, flightTime, refVel, refAcc, traj);
     std::set<int> insertionIndice;
-    do{
-        int no_check_next_samples = 1.2 / configParser->getTrajectoryGeneratorProperties().samplingInterval;
-        insertionIndice = pathPlanner.checkTrajectoryValidityAndReturnCollisionIdx(traj, prunedWaypoints, no_check_next_samples);
+    // do{
+    //     int no_check_next_samples = 1.2 / configParser->getTrajectoryGeneratorProperties().samplingInterval;
+    //     insertionIndice = pathPlanner.checkTrajectoryValidityAndReturnCollisionIdx(traj, prunedWaypoints, no_check_next_samples);
 
-        std::cout << "Trajectory invalid, inserting " << insertionIndice.size() << " waypoints" << std::endl;
+    //     std::cout << "Trajectory invalid, inserting " << insertionIndice.size() << " waypoints" << std::endl;
 
-        for(const auto &idx: insertionIndice){
-            const Eigen::Vector3d& preWaypoint = prunedWaypoints[idx];
-            const Eigen::Vector3d& postWaypoint = prunedWaypoints[idx + 1];
-            const Eigen::Vector3d insertedWaypoint = (preWaypoint + postWaypoint) / 2;
+    //     for(const auto &idx: insertionIndice){
+    //         const Eigen::Vector3d& preWaypoint = prunedWaypoints[idx];
+    //         const Eigen::Vector3d& postWaypoint = prunedWaypoints[idx + 1];
+    //         const Eigen::Vector3d insertedWaypoint = (preWaypoint + postWaypoint) / 2;
             
-            prunedWaypoints.insert(prunedWaypoints.begin() + idx + 1, insertedWaypoint);
-        }
+    //         prunedWaypoints.insert(prunedWaypoints.begin() + idx + 1, insertedWaypoint);
+    //     }
 
-        // prune waypoints to close to one another
-        std::vector<Eigen::Vector3d> waypointsDuplicatesRemoved;
-        waypointsDuplicatesRemoved.push_back(prunedWaypoints[0]);
+    //     // prune waypoints to close to one another
+    //     std::vector<Eigen::Vector3d> waypointsDuplicatesRemoved;
+    //     waypointsDuplicatesRemoved.push_back(prunedWaypoints[0]);
 
-        Eigen::Vector3d lastWaypoint = prunedWaypoints[0];
-        for(int i = 1; i < prunedWaypoints.size(); i++){
-            const Eigen::Vector3d& currentWaypoint = prunedWaypoints[i];
-            if((currentWaypoint - lastWaypoint).norm() > 0.01){
-                waypointsDuplicatesRemoved.push_back(currentWaypoint);
-                lastWaypoint = currentWaypoint;
-            }
-        }
+    //     Eigen::Vector3d lastWaypoint = prunedWaypoints[0];
+    //     for(int i = 1; i < prunedWaypoints.size(); i++){
+    //         const Eigen::Vector3d& currentWaypoint = prunedWaypoints[i];
+    //         if((currentWaypoint - lastWaypoint).norm() > 0.01){
+    //             waypointsDuplicatesRemoved.push_back(currentWaypoint);
+    //             lastWaypoint = currentWaypoint;
+    //         }
+    //     }
 
-        prunedWaypoints = waypointsDuplicatesRemoved;
-        pathWriter.writePath(prunedWaypoints);
+    //     prunedWaypoints = waypointsDuplicatesRemoved;
+    //     pathWriter.writePath(prunedWaypoints);
 
-        poly_traj::generateTrajectory(prunedWaypoints, v_max, a_max, samplingInterval, flightTime, refVel, refAcc, traj);
+    //     poly_traj::generateTrajectory(prunedWaypoints, v_max, a_max, samplingInterval, flightTime, refVel, refAcc, traj);
 
-    }while(insertionIndice.size() > 0);
+    // }while(insertionIndice.size() > 0);
 
     plannedTraj = traj;
 
