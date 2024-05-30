@@ -27,6 +27,8 @@ add_library(${PROJECT_NAME} STATIC
     src/OnlineTrajGenerator.cpp
     src/PathWriter.cpp
 )
+set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 
 # Include directories scoped to the target
 target_include_directories(${PROJECT_NAME} PUBLIC 
