@@ -1,6 +1,7 @@
 #include "OnlineTrajGenerator.h"
 #include <iostream>
 #include "poly_traj/trajectory_generator.h"
+#include <thread>
 #include <fstream>
 
 OnlineTrajGenerator::OnlineTrajGenerator(const Eigen::Vector3d start, const Eigen::Vector3d goal, const Eigen::MatrixXd &nominalGatePositionAndType, const Eigen::MatrixXd &nominalObstaclePosition, const std::string &configPath)
@@ -94,22 +95,6 @@ void OnlineTrajGenerator::preComputeTraj(const double takeoffTime)
 
 bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd &newPose, const Eigen::Vector3d &dronePos, const bool nextGateWithinRange, const double flightTime)
 {   
-    bool gateHasOutstandingUpdated = false;
-    if (outstandingGateUpdates.find(gateId) != outstandingGateUpdates.end())
-    {
-        const float timeSinceUpdate = flightTime - outstandingGateUpdates[gateId];
-        if (timeSinceUpdate > 0.2)
-        {
-            gateHasOutstandingUpdated = true;
-        }
-    }
-
-    // data relevant for all
-    const int segmentIdPre = gateId;
-    const int segmentIdPost = gateId + 1;
-    const int checkpointIdPre = 2 * gateId + 1;
-    const int checkpointIdPost = 2 * gateId + 2;
-    const int checkpointIdNextGate = 2 * gateId + 3;
 
    // if(!gateHasOutstandingUpdated){
     if (nextGateWithinRange)
@@ -135,6 +120,26 @@ bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd 
         return false;
     }
 
+
+    if(trajectoryCurrentlyUpdating){
+        std::cerr << "Call to update trajectory, while previous update is still going on";
+        exit(1);
+    }
+
+    trajectoryCurrentlyUpdating = true;
+    std::thread(&OnlineTrajGenerator::recomputeTraj, this, gateId, newPose, dronePos, nextGateWithinRange, flightTime).detach();
+
+    return true;
+}
+
+void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd& newPose, const Eigen::Vector3d& dronePos, const bool nextGateWithinRange, const double flightTime){
+    // Generally relevant idxs
+    const int segmentIdPre = gateId;
+    const int segmentIdPost = gateId + 1;
+    const int checkpointIdPre = 2 * gateId + 1;
+    const int checkpointIdPost = 2 * gateId + 2;
+    const int checkpointIdNextGate = 2 * gateId + 3;
+    
     // update nominal gate position
     nominalGatePositionAndType.row(gateId).head(6) = newPose;
     std::cout << "updaging gate pos, subtract height: " << nextGateWithinRange << std::endl;
@@ -148,95 +153,67 @@ bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd 
     const Eigen::VectorXd lateCheckpoint = center + checkpointOffset * normal;
     checkpoints[checkpointIdPre] = earlyCheckpoint;
     checkpoints[checkpointIdPost] = lateCheckpoint;
-    //}
-    
+
+    // advance trajectory by delta t. Approximately accounting for time it taikes us to recomputeTraj
+    const double advanceTime = 0.35;
+    const double advancedTime = flightTime + advanceTime;
+    int startIdxAdvanced;
+    for(startIdxAdvanced = 0; startIdxAdvanced < plannedTraj.rows(); startIdxAdvanced++){
+        const Eigen::MatrixXd &state = plannedTraj.row(startIdxAdvanced);
+        const int timeIdx = state.cols() - 1;
+
+        if(state(timeIdx) > advancedTime){
+            break;
+        }
+    }
+
+    const Eigen::MatrixXd& trajectoryPartPre = plannedTraj.topRows(startIdxAdvanced);
+    const Eigen::MatrixXd& advancedStartState = plannedTraj.row(startIdxAdvanced + 1);
+    const Eigen::Vector3d dronePosAdvanced = Eigen::Vector3d(advancedStartState(0), advancedStartState(3), advancedStartState(6));
+    const Eigen::Vector3d droneVelAdvanced = Eigen::Vector3d(advancedStartState(1), advancedStartState(4), advancedStartState(7));
+    const Eigen::Vector3d droneAccAdvanced = Eigen::Vector3d(advancedStartState(2), advancedStartState(5), advancedStartState(8));
+
     // Recompute first segment, from drone to first checkpoint
     std::vector<Eigen::Vector3d> preSegmentPath;
-    std::cout << "Recomputing path from drone to firsty checkpoint, i.e. from" << dronePos.transpose() << " to " << checkpoints[checkpointIdPre].transpose() << std::endl;
-    const bool preSegmentResult = pathPlanner.planPath(dronePos, checkpoints[checkpointIdPre], configParser->getPathPlannerProperties().timeLimitOnline, preSegmentPath);
+    const bool preSegmentResult = pathPlanner.planPath(dronePosAdvanced, checkpoints[checkpointIdPre], configParser->getPathPlannerProperties().timeLimitOnline, preSegmentPath);
     if (!preSegmentResult)
     {
-        std::cout << "Path not found, trying again later" << std::endl;
-        outstandingGateUpdates[gateId] = flightTime;
-        return false;
+        std::cerr << "Pre path not found. Exiting" << std::endl;
+        exit(1);
     }
-    else
-    {
-        outstandingGateUpdates.erase(gateId);
-    }
+
     pathSegments[segmentIdPre] = preSegmentPath;
 
     // Recompute second segment, from post checkpoint to next gate
     std::vector<Eigen::Vector3d> postSegmentPath;
-    std::cout << "Recomputing path from post checkpoint to next gate, i.e. from" << checkpoints[checkpointIdPost].transpose() << " to " << checkpoints[checkpointIdNextGate].transpose() << std::endl;
     const bool postSegmentResult = pathPlanner.planPath(checkpoints[checkpointIdPost], checkpoints[checkpointIdNextGate], configParser->getPathPlannerProperties().timeLimitOnline, postSegmentPath);
     if (!postSegmentResult)
     {
-        std::cout << "Post segment path not found" << std::endl;
-    }
-    else
-    {
-        pathSegments[segmentIdPost] = postSegmentPath;
+        std::cout << "Post segment path not found. Exiting" << std::endl;
+        exit(1);
     }
 
-    // Recompute trajectory
-    const Eigen::VectorXd referenceState = sampleTraj(flightTime);
-    Eigen::Vector3d refVel, refAcc;
-    refVel << referenceState(1), referenceState(4), referenceState(7);
-    refAcc << referenceState(2), referenceState(5), referenceState(8);
-
+    // Recompute trajectory for second part
     std::vector<std::vector<Eigen::Vector3d>> pathSegmentsSlice;
     for (int i = segmentIdPre; i < pathSegments.size(); i++)
     {
         pathSegmentsSlice.push_back(pathSegments[i]);
     }
 
-    std::vector<Eigen::Vector3d> prunedWaypoints = pathPlanner.includeGates(pathSegmentsSlice);
-    pathWriter.writePath(prunedWaypoints);
+    std::vector<Eigen::Vector3d> filledWaypoints = pathPlanner.includeGates(pathSegmentsSlice);
+    pathWriter.writePath(filledWaypoints);
 
     const double v_max = configParser->getTrajectoryGeneratorProperties().maxVelocity;
     const double a_max = configParser->getTrajectoryGeneratorProperties().maxAcceleration;
     const double samplingInterval = configParser->getTrajectoryGeneratorProperties().samplingInterval;
-    Eigen::MatrixXd traj;
-    poly_traj::generateTrajectory(prunedWaypoints, v_max, a_max, samplingInterval, flightTime, refVel, refAcc, traj);
-    std::set<int> insertionIndice;
-    // do{
-    //     int no_check_next_samples = 1.2 / configParser->getTrajectoryGeneratorProperties().samplingInterval;
-    //     insertionIndice = pathPlanner.checkTrajectoryValidityAndReturnCollisionIdx(traj, prunedWaypoints, no_check_next_samples);
-
-    //     std::cout << "Trajectory invalid, inserting " << insertionIndice.size() << " waypoints" << std::endl;
-
-    //     for(const auto &idx: insertionIndice){
-    //         const Eigen::Vector3d& preWaypoint = prunedWaypoints[idx];
-    //         const Eigen::Vector3d& postWaypoint = prunedWaypoints[idx + 1];
-    //         const Eigen::Vector3d insertedWaypoint = (preWaypoint + postWaypoint) / 2;
-            
-    //         prunedWaypoints.insert(prunedWaypoints.begin() + idx + 1, insertedWaypoint);
-    //     }
-
-    //     // prune waypoints to close to one another
-    //     std::vector<Eigen::Vector3d> waypointsDuplicatesRemoved;
-    //     waypointsDuplicatesRemoved.push_back(prunedWaypoints[0]);
-
-    //     Eigen::Vector3d lastWaypoint = prunedWaypoints[0];
-    //     for(int i = 1; i < prunedWaypoints.size(); i++){
-    //         const Eigen::Vector3d& currentWaypoint = prunedWaypoints[i];
-    //         if((currentWaypoint - lastWaypoint).norm() > 0.01){
-    //             waypointsDuplicatesRemoved.push_back(currentWaypoint);
-    //             lastWaypoint = currentWaypoint;
-    //         }
-    //     }
-
-    //     prunedWaypoints = waypointsDuplicatesRemoved;
-    //     pathWriter.writePath(prunedWaypoints);
-
-    //     poly_traj::generateTrajectory(prunedWaypoints, v_max, a_max, samplingInterval, flightTime, refVel, refAcc, traj);
-
-    // }while(insertionIndice.size() > 0);
-
-    plannedTraj = traj;
-
-    return true;
+    Eigen::MatrixXd trajPartPost;
+    poly_traj::generateTrajectory(filledWaypoints, v_max, a_max, samplingInterval, flightTime, droneVelAdvanced, droneAccAdvanced, trajPartPost);
+    
+    // merge trajectories together, pre computed and current
+    Eigen::MatrixXd newTraj(trajPartPost.rows() + trajectoryPartPre.rows(), trajPartPost.cols());
+    newTraj << trajectoryPartPre, trajPartPost;
+    plannedTraj = newTraj;
+    trajectoryCurrentlyUpdating = false;
 }
 
 Eigen::VectorXd OnlineTrajGenerator::sampleTraj(const double currentTime) const

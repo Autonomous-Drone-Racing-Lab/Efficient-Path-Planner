@@ -22,6 +22,9 @@ public:
 
 
 private:
+    bool trajectoryCurrentlyUpdating = false;
+    void recomputeTraj(const int gateId, const Eigen::VectorXd& newPose, const Eigen::Vector3d& dronePos, const bool nextGateWithinRange, const double flightTime);
+    
     std::shared_ptr<ConfigParser> configParser;
     PathPlanner pathPlanner;
 
