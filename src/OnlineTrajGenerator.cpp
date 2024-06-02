@@ -155,7 +155,7 @@ void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd&
     checkpoints[checkpointIdPost] = lateCheckpoint;
 
     // advance trajectory by delta t. Approximately accounting for time it taikes us to recomputeTraj
-    const double advanceTime = 0.15;
+    const double advanceTime = 2 * configParser->getPathPlannerProperties().timeLimitOnline + 0.05; // 50 ms added for general computation overhead
     const double advancedTime = flightTime + advanceTime;
     int startIdxAdvanced;
     // we could only include time from, now however, we include full trajectory to preetify printing

@@ -88,7 +88,9 @@ bool PathPlanner::planPath(const Eigen::Vector3d &start, const Eigen::Vector3d &
 
     // create planner
     // ob::PlannerPtr planner(new ompl::geometric::RRTstar(si));
-    ob::PlannerPtr planner(new ompl::geometric::InformedRRTstar(si));
+    std::shared_ptr<ompl::geometric::RRTstar> algo = std::make_shared<ompl::geometric::RRTstar>(si);
+    algo->setRange(configParser->getPathPlannerProperties().range);
+    ob::PlannerPtr planner(algo);
 
     planner->setProblemDefinition(pdef);
     planner->setup();

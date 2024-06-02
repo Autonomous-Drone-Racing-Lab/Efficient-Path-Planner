@@ -43,6 +43,7 @@ struct PathPlannerProperties
     double timeLimitOnline;
     double timeLimitOffline;
     double checkpointGateOffset;
+    double range;
 };
 
 struct TrajectoryGeneratorProperties{

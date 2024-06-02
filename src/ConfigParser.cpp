@@ -101,6 +101,7 @@ void ConfigParser::parsePathPlannerProperties(json& config)
     pathPlannerProperties.timeLimitOnline = config["path_planner_properties"]["time_limit_online"];
     pathPlannerProperties.timeLimitOffline = config["path_planner_properties"]["time_limit_offline"];
     pathPlannerProperties.checkpointGateOffset = config["path_planner_properties"]["checkpoint_gate_offset"];
+    pathPlannerProperties.range = config["path_planner_properties"]["range"];
 }
 
 void ConfigParser::parseTrajectoryGeneratorProperties(json& config)
