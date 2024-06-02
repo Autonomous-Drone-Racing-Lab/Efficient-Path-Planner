@@ -19,11 +19,14 @@ class PathPlanner{
 
     bool planPath(const Eigen::Vector3d& start, const Eigen::Vector3d& goal, const double timeLimit, std::vector<Eigen::Vector3d>& resultPath);
     void updateGatePos(const int gateId, const Eigen::Vector3d& newPose, const bool subtractHeight);
-    std::vector<Eigen::Vector3d> pruneWaypoints(const std::vector<std::vector<Eigen::Vector3d>> &waypoints);
+    
     std::set<int> checkTrajectoryValidityAndReturnCollisionIdx(const Eigen::MatrixXd &trajectoryPoints, const std::vector<Eigen::Vector3d> &prunedPath, int number_check_next_samples=-1) const;
     std::vector<Eigen::Vector3d> includeGates(const std::vector<std::vector<Eigen::Vector3d>> &waypoints) const;
+    std::vector<Eigen::Vector3d> includeGates2(std::vector<std::vector<Eigen::Vector3d>> waypoints) const;
 
     private:
+    std::vector<Eigen::Vector3d> pruneWaypoints(const std::vector<Eigen::Vector3d> &waypoints) const;
+
     ompl::base::StateSpacePtr space;
     ompl::base::SpaceInformationPtr si;
     std::shared_ptr<World> worldPtr;

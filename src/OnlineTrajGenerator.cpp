@@ -81,7 +81,7 @@ void OnlineTrajGenerator::preComputeTraj(const double takeoffTime)
     // }
 
 
-    const std::vector<Eigen::Vector3d> prunedPath = pathPlanner.includeGates(pathSegments);
+    const std::vector<Eigen::Vector3d> prunedPath = pathPlanner.includeGates2(pathSegments);
     pathWriter.writePath(prunedPath);
 
     const double v_max = configParser->getTrajectoryGeneratorProperties().maxVelocity;
@@ -155,9 +155,10 @@ void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd&
     checkpoints[checkpointIdPost] = lateCheckpoint;
 
     // advance trajectory by delta t. Approximately accounting for time it taikes us to recomputeTraj
-    const double advanceTime = 0.35;
+    const double advanceTime = 0.15;
     const double advancedTime = flightTime + advanceTime;
     int startIdxAdvanced;
+    // we could only include time from, now however, we include full trajectory to preetify printing
     for(startIdxAdvanced = 0; startIdxAdvanced < plannedTraj.rows(); startIdxAdvanced++){
         const Eigen::MatrixXd &state = plannedTraj.row(startIdxAdvanced);
         const int timeIdx = state.cols() - 1;
@@ -200,7 +201,7 @@ void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd&
         pathSegmentsSlice.push_back(pathSegments[i]);
     }
 
-    std::vector<Eigen::Vector3d> filledWaypoints = pathPlanner.includeGates(pathSegmentsSlice);
+    std::vector<Eigen::Vector3d> filledWaypoints = pathPlanner.includeGates2(pathSegmentsSlice);
     pathWriter.writePath(filledWaypoints);
 
     const double v_max = configParser->getTrajectoryGeneratorProperties().maxVelocity;
@@ -212,6 +213,7 @@ void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd&
     // merge trajectories together, pre computed and current
     Eigen::MatrixXd newTraj(trajPartPost.rows() + trajectoryPartPre.rows(), trajPartPost.cols());
     newTraj << trajectoryPartPre, trajPartPost;
+    std::cout << "Updated trajectory" << std::endl;
     plannedTraj = newTraj;
     trajectoryCurrentlyUpdating = false;
 }

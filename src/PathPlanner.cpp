@@ -137,49 +137,70 @@ void PathPlanner::updateGatePos(const int gateId, const Eigen::Vector3d &newPose
     worldPtr->updateGatePosition(gateId, newPose, subtractHeight);
 }
 
-std::vector<Eigen::Vector3d> PathPlanner::pruneWaypoints(const std::vector<std::vector<Eigen::Vector3d>> &waypoints)
+std::vector<Eigen::Vector3d> PathPlanner::includeGates2(std::vector<std::vector<Eigen::Vector3d>> waypoints) const
 {
-    // prune waypoints that are not necessary, because it could be skipped by connecting to the next waypoint in a straight line
-    // Todo hanle edge cases, e.g. length is one, ...
-
-    std::vector<Eigen::Vector3d> waypointsFlattened;
-    for (const auto &segment : waypoints)
+     // step 1: inlcude gate positions
+    std::vector<Eigen::Vector3d> gateCenters;
+    for (int firstSegmentIdx = 0; firstSegmentIdx < waypoints.size() - 1; firstSegmentIdx++)
     {
-        for (const auto &waypoint : segment)
-        {
-            waypointsFlattened.push_back(waypoint);
+        const Eigen::Vector3d& firstSegmentEnd = waypoints[firstSegmentIdx][waypoints[firstSegmentIdx].size() - 1];
+        const Eigen::Vector3d& secondSegmentStart = waypoints[firstSegmentIdx + 1][0];
+        gateCenters.push_back((firstSegmentEnd + secondSegmentStart) / 2);
+    }
+
+    // step 2: include gate centers
+    for(int i = 0; i < gateCenters.size(); i++){
+        waypoints[i].push_back(gateCenters[i]);
+        if(i < gateCenters.size() - 1){
+            waypoints[i + 1].insert(waypoints[i + 1].begin(), gateCenters[i]);
         }
     }
 
-    if (waypointsFlattened.size() < 3)
+    std::vector<Eigen::Vector3d> waypointsFlattened;
+    for(const auto& segment : waypoints){
+        std::vector<Eigen::Vector3d> prunedWaypoints = pruneWaypoints(segment);
+        for(const auto& waypoint : prunedWaypoints){
+            // do not include duplicates
+            if(waypointsFlattened.size() > 0 && (waypointsFlattened.back() - waypoint).norm() < 0.05){
+                continue;
+            }
+            waypointsFlattened.push_back(waypoint);
+        }
+    }
+    return waypointsFlattened;
+}
+
+std::vector<Eigen::Vector3d> PathPlanner::pruneWaypoints(const std::vector<Eigen::Vector3d> &waypoints) const
+{
+    if (waypoints.size() < 3)
     {
-        return waypointsFlattened;
+        return waypoints;
     }
 
     std::vector<Eigen::Vector3d> prunedWaypoints;
-    prunedWaypoints.push_back(waypointsFlattened[0]); // add first waypoint
+    prunedWaypoints.push_back(waypoints[0]); // add first waypoint
 
     int referenceWaypointIdx = 0;
     int waypointIdx = 2;
-    while (waypointIdx < waypointsFlattened.size())
+    while (waypointIdx < waypoints.size())
     {
-        const Eigen::Vector3d referenceWaypoint = waypointsFlattened[referenceWaypointIdx];
-        const Eigen::Vector3d currentWaypoint = waypointsFlattened[waypointIdx];
+        const Eigen::Vector3d referenceWaypoint = waypoints[referenceWaypointIdx];
+        const Eigen::Vector3d currentWaypoint = waypoints[waypointIdx];
         if (!worldPtr->checkRayValid(referenceWaypoint, currentWaypoint, true))
         {
-            const Eigen::Vector3d lastValidWaypoint = waypointsFlattened[waypointIdx - 1];
+            const Eigen::Vector3d lastValidWaypoint = waypoints[waypointIdx - 1];
             prunedWaypoints.push_back(lastValidWaypoint);
             referenceWaypointIdx = waypointIdx - 1;
         }
         waypointIdx++;
     }
 
-    int waypintsBefore = waypointsFlattened.size();
+    int waypintsBefore = waypoints.size();
     int waypointsAfter = prunedWaypoints.size();
-    std::cout << "Pruned " << waypintsBefore - waypointsAfter << " waypoints from " << waypintsBefore << " to " << waypointsAfter << std::endl;
+    //std::cout << "Pruned " << waypintsBefore - waypointsAfter << " waypoints from " << waypintsBefore << " to " << waypointsAfter << std::endl;
 
     // adding last waypoint necessary as path must end at goal. No risk of duplication as last waypoint never added in loop from before
-    prunedWaypoints.push_back(waypointsFlattened[waypointsFlattened.size() - 1]); // add last waypoint
+    prunedWaypoints.push_back(waypoints[waypoints.size() - 1]); // add last waypoint
 
     return prunedWaypoints;
 }
@@ -188,8 +209,9 @@ std::vector<Eigen::Vector3d> PathPlanner::includeGates(const std::vector<std::ve
 {
     std::vector<Eigen::Vector3d> waypointsFlattened;
     for (int i = 0; i < waypoints.size(); i++)
-    {
-        for (int j = 0; j < waypoints[i].size(); j++)
+    {   
+        // ignore last waypoint, directly skip to center
+        for (int j = 0; j < waypoints[i].size() - 1; j++)
         {
             waypointsFlattened.push_back(waypoints[i][j]);
         }
