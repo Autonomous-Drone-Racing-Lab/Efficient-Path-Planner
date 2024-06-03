@@ -99,17 +99,23 @@ bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd 
         return false;
     }
 
-    const Eigen::Vector3d &newPos = newPose.head(3);
+    const Eigen::Vector3d& newPos = newPose.head(3);
     const Eigen::Vector3d &oldPos = nominalGatePositionAndType.row(gateId).head(3);
     const Eigen::Vector3d &newRot = newPose.segment(3, 3);
     const Eigen::Vector3d &oldRot = nominalGatePositionAndType.row(gateId).segment(3, 3);
 
-    const double posInsinificanceThreshold = 0.05;
-    const double rotInsinificanceThreshold = 0.05;
-    if ((newPos - oldPos).norm() < posInsinificanceThreshold && (newRot - oldRot).norm() < rotInsinificanceThreshold)
+    const double posInsinificanceThreshold = 0.01;
+    const double rotInsinificanceThreshold = 0.2;
+
+    // z coordinate should not change anyways
+    const double deltaPos = (newPos.topRows(2) - oldPos.topRows(2)).norm();
+    const double deltaRot = (newRot - oldRot).norm();
+    if (deltaPos < posInsinificanceThreshold && deltaRot < rotInsinificanceThreshold)
     {
         return false;
     }
+
+    std::cout << "Delta pos " << deltaPos << " Delta rot " << deltaRot << std::endl;
 
 
     if(trajectoryCurrentlyUpdating){
@@ -148,32 +154,26 @@ void OnlineTrajGenerator::recomputePath(const int gateId, const Eigen::VectorXd&
     checkpoints[checkpointIdPost] = lateCheckpoint;
 
     // advance trajectory by delta t. Approximately accounting for time it taikes us to recomputeTraj
+    // advance trajectory by delta t. Approximately accounting for time it taikes us to recomputeTraj
     const double advanceTime = 2 * configParser->getPathPlannerProperties().timeLimitOnline + 0.05; // 50 ms added for general computation overhead
     const double advancedTime = flightTime + advanceTime;
-    const std::vector<Eigen::Vector3d>& pathSegment = pathSegments[segmentIdPre];
+    int startIdxAdvanced;
     // we could only include time from, now however, we include full trajectory to preetify printing
-    int startIdxAdvanced = 0;
-    int endIdxAdvaned = 0;
-    for(int i = 0; i < plannedTraj.rows(); i++){
+    for(startIdxAdvanced = 0; startIdxAdvanced < plannedTraj.rows(); startIdxAdvanced++){
         const Eigen::MatrixXd &state = plannedTraj.row(startIdxAdvanced);
         const int timeIdx = state.cols() - 1;
-        const double time = state(timeIdx);
 
-        if(time < flightTime ){
-            startIdxAdvanced++;
-        }
-              if(time < advancedTime){
-            endIdxAdvaned++;
+        if(state(timeIdx) > advancedTime){
+            break;
         }
     }
-    
-    const Eigen::MatrixXd& trajectoryPartPre = plannedTraj.middleRows(startIdxAdvanced, endIdxAdvaned);
-    const Eigen::MatrixXd& advancedStartState = plannedTraj.row(endIdxAdvaned + 1);
+
+    const Eigen::MatrixXd& trajectoryPartPre = plannedTraj.topRows(startIdxAdvanced);
+    const Eigen::MatrixXd& advancedStartState = plannedTraj.row(startIdxAdvanced + 1);
     const Eigen::Vector3d dronePosAdvanced = Eigen::Vector3d(advancedStartState(0), advancedStartState(3), advancedStartState(6));
     const Eigen::Vector3d droneVelAdvanced = Eigen::Vector3d(advancedStartState(1), advancedStartState(4), advancedStartState(7));
     const Eigen::Vector3d droneAccAdvanced = Eigen::Vector3d(advancedStartState(2), advancedStartState(5), advancedStartState(8));
-
-   std::cout << "Before pre path" << std::endl;
+    
     // Recompute first segment, from drone to first checkpoint
     std::vector<Eigen::Vector3d> preSegmentPath;
     const bool preSegmentResult = pathPlanner.planPath(dronePosAdvanced, checkpoints[checkpointIdPre], configParser->getPathPlannerProperties().timeLimitOnline, preSegmentPath);
@@ -185,7 +185,6 @@ void OnlineTrajGenerator::recomputePath(const int gateId, const Eigen::VectorXd&
 
     pathSegments[segmentIdPre] = preSegmentPath;
 
-    std::cout << "Before post path" << std::endl;
     // Recompute second segment, from post checkpoint to next gate
     std::vector<Eigen::Vector3d> postSegmentPath;
     const bool postSegmentResult = pathPlanner.planPath(checkpoints[checkpointIdPost], checkpoints[checkpointIdNextGate], configParser->getPathPlannerProperties().timeLimitOnline, postSegmentPath);
@@ -197,15 +196,10 @@ void OnlineTrajGenerator::recomputePath(const int gateId, const Eigen::VectorXd&
     pathSegments[segmentIdPost] = postSegmentPath;
 
     Eigen::MatrixXd postTraj;
-    std::cout << "Before recompute traj" << std::endl;
     computeTraj(dronePosAdvanced, droneVelAdvanced, droneAccAdvanced, advancedStartState(9) ,segmentIdPre, postTraj);
-    std::cout << "After recompute traj" << std::endl;
 
-    std::cout << "Trajectory part pre shape" << trajectoryPartPre.rows() << " " << trajectoryPartPre.cols() << std::endl;
-    std::cout << "Post traj shape" << postTraj.rows() << " " << postTraj.cols() << std::endl;
 
     Eigen::MatrixXd newTraj(trajectoryPartPre.rows() + postTraj.rows(), postTraj.cols());
-    std::cout << "New traj shape" << newTraj.rows() << " " << newTraj.cols() << std::endl;
 
     newTraj << trajectoryPartPre, postTraj;
     plannedTraj = newTraj;
@@ -221,8 +215,10 @@ void OnlineTrajGenerator::computeTraj(const Eigen::Vector3d& dronePos, const Eig
     }
    
     std::vector<std::vector<Eigen::Vector3d>> pathSegmentsGatesIncluded = pathPlanner.includeGates3(trajGenerationPathSegments);
+    std::cout << "Before insertion: Drone pos " << dronePos.transpose() << std::endl;
     trajGenerationPathSegments[0] = pathPlanner.insertStartInSegment(dronePos, trajGenerationPathSegments[0]);
-    
+    std::cout << "After insertion first waypoint " << trajGenerationPathSegments[0][0].transpose() << std::endl;
+
     std::vector<Eigen::Vector3d> waypointsFlattened;
     for(const auto& segment : trajGenerationPathSegments){
         std::vector<Eigen::Vector3d> prunedWaypoints = pathPlanner.pruneWaypoints(segment);
@@ -253,6 +249,7 @@ Eigen::VectorXd OnlineTrajGenerator::sampleTrajWithRecomputation(const Eigen::Ve
     if ((dronePos - sampledPos ).norm() > recalac_delta){
         std::cout << "Drift too large, recalc trajectory" << std::endl;
         std::cout << "Real pos " << dronePos.transpose() << " Sampled pos " << sampledPos.transpose() << std::endl;
+        return sampled;
         Eigen::MatrixXd plannedTraj;
         computeTraj(dronePos, droneVel, droneAcc, epTime, segmentId, plannedTraj);
         this->plannedTraj = plannedTraj;
