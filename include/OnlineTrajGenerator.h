@@ -14,8 +14,9 @@ public:
     OnlineTrajGenerator(const Eigen::Vector3d start, const Eigen::Vector3d goal, const Eigen::MatrixXd &nominalGatePositionAndType, const Eigen::MatrixXd &nominalObstaclePosition, const std::string &configPath);
 
     void preComputeTraj(const double takeoffTime);
-    bool updateGatePos(const int gateId, const Eigen::VectorXd &newPose,  const Eigen::Vector3d& dronePos, const bool nextGateWithinRange, const double flightTime);
+    bool updateGatePos(const int gateId, const Eigen::VectorXd &newPose, const Eigen::Vector3d &dronePos,  const bool nextGateWithinRange, const double flightTime);
 
+    Eigen::VectorXd sampleTrajWithRecomputation(const Eigen::Vector3d& dronePos, const Eigen::Vector3d& droneVel, const Eigen::Vector3d& droneAcc, const double epTime, const int segmentId);
     Eigen::VectorXd sampleTraj(const double currentTime) const;
     double getTrajEndTime() const;
     Eigen::MatrixXd getPlannedTraj() const;
@@ -23,8 +24,9 @@ public:
 
 private:
     bool trajectoryCurrentlyUpdating = false;
-    void recomputeTraj(const int gateId, const Eigen::VectorXd& newPose, const Eigen::Vector3d& dronePos, const bool nextGateWithinRange, const double flightTime);
-    
+
+    void recomputePath(const int gateId, const Eigen::VectorXd &newPose, const Eigen::Vector3d& dronePos, const bool nextGateWithinRange, const double flightTime);
+    void computeTraj(const Eigen::Vector3d& dronePos, const Eigen::Vector3d& droneVel, const Eigen::Vector3d& droneAcc, const double startTimeOffset, const int segmentId, Eigen::MatrixXd& plannedTraj);
     std::shared_ptr<ConfigParser> configParser;
     PathPlanner pathPlanner;
 

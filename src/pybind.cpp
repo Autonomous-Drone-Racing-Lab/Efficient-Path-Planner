@@ -16,7 +16,8 @@ PYBIND11_MODULE(online_traj_planner, m) {
              py::arg("gateId"), py::arg("newPose"), py::arg("dronePos"), py::arg("nextGateWithinRange"), py::arg("flightTime"))
         .def("sample_traj", &OnlineTrajGenerator::sampleTraj, py::arg("currentTime"))
         .def("get_traj_end_time", &OnlineTrajGenerator::getTrajEndTime)
-        .def("get_planned_traj", &OnlineTrajGenerator::getPlannedTraj);
+        .def("get_planned_traj", &OnlineTrajGenerator::getPlannedTraj)
+        .def("sample_traj_with_recompute", &OnlineTrajGenerator::sampleTrajWithRecomputation, py::arg("dronePos"), py::arg("droneVel"), py::arg("droneAcc"), py::arg("epTime"), py::arg("segmentId"));
 
     py::class_<Eigen::Vector3d>(m, "Vector3d")
         .def(py::init<const Eigen::Ref<const Eigen::Vector3d>&>());  // Allows initialization from a numpy array directly

@@ -23,9 +23,13 @@ class PathPlanner{
     std::set<int> checkTrajectoryValidityAndReturnCollisionIdx(const Eigen::MatrixXd &trajectoryPoints, const std::vector<Eigen::Vector3d> &prunedPath, int number_check_next_samples=-1) const;
     std::vector<Eigen::Vector3d> includeGates(const std::vector<std::vector<Eigen::Vector3d>> &waypoints) const;
     std::vector<Eigen::Vector3d> includeGates2(std::vector<std::vector<Eigen::Vector3d>> waypoints) const;
+    std::vector<std::vector<Eigen::Vector3d>> includeGates3(std::vector<std::vector<Eigen::Vector3d>> waypoints) const;
+    std::vector<Eigen::Vector3d> pruneWaypoints(const std::vector<Eigen::Vector3d> &waypoints) const;
+    
+    std::vector<Eigen::Vector3d> insertStartInSegment(const Eigen::Vector3d& start, const std::vector<Eigen::Vector3d>& segment) const;
 
     private:
-    std::vector<Eigen::Vector3d> pruneWaypoints(const std::vector<Eigen::Vector3d> &waypoints) const;
+    
 
     ompl::base::StateSpacePtr space;
     ompl::base::SpaceInformationPtr si;
