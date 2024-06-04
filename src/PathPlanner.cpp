@@ -62,7 +62,7 @@ PathPlanner::PathPlanner(const Eigen::MatrixXd &nominalGatePositionAndType, cons
     si->setup();
 }
 
-bool PathPlanner::planPath(const Eigen::Vector3d &start, const Eigen::Vector3d &goal, const double timeLimit, std::vector<Eigen::Vector3d> &resultPath)
+bool PathPlanner::planPath(const Eigen::Vector3d &start, const Eigen::Vector3d &goal, const double timeLimit, std::vector<Eigen::Vector3d> &resultPath) const
 {
     // assert result path is empty
     if (!resultPath.empty())
@@ -153,7 +153,7 @@ std::vector<Eigen::Vector3d> PathPlanner::includeGates2(std::vector<std::vector<
     // step 2: include gate centers
     for(int i = 0; i < gateCenters.size(); i++){
         waypoints[i].push_back(gateCenters[i]);
-        if(i < gateCenters.size() - 1){
+        if(i < gateCenters.size()){
             waypoints[i + 1].insert(waypoints[i + 1].begin(), gateCenters[i]);
         }
     }

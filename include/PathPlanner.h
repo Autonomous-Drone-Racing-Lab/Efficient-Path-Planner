@@ -17,7 +17,7 @@ class PathPlanner{
     public: 
     PathPlanner(const Eigen::MatrixXd& nominalGatePositionAndType, const Eigen::MatrixXd& nominalObstaclePosition, std::shared_ptr<ConfigParser> configParser);
 
-    bool planPath(const Eigen::Vector3d& start, const Eigen::Vector3d& goal, const double timeLimit, std::vector<Eigen::Vector3d>& resultPath);
+    bool planPath(const Eigen::Vector3d& start, const Eigen::Vector3d& goal, const double timeLimit, std::vector<Eigen::Vector3d>& resultPath) const;
     void updateGatePos(const int gateId, const Eigen::Vector3d& newPose, const bool subtractHeight);
     
     std::set<int> checkTrajectoryValidityAndReturnCollisionIdx(const Eigen::MatrixXd &trajectoryPoints, const std::vector<Eigen::Vector3d> &prunedPath, int number_check_next_samples=-1) const;

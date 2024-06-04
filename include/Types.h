@@ -44,6 +44,8 @@ struct PathPlannerProperties
     double timeLimitOffline;
     double checkpointGateOffset;
     double range;
+    double posDivergenceRecalculate;
+    double rotDivergenceRecalculate;
 };
 
 struct TrajectoryGeneratorProperties{
