@@ -104,6 +104,7 @@ void ConfigParser::parsePathPlannerProperties(json& config)
     pathPlannerProperties.range = config["path_planner_properties"]["range"];
     pathPlannerProperties.posDivergenceRecalculate = config["path_planner_properties"]["pos_divergence_recalculate"];
     pathPlannerProperties.rotDivergenceRecalculate = config["path_planner_properties"]["rot_divergence_recalculate"];
+    pathPlannerProperties.minDistCheckTrajCollision = config["path_planner_properties"]["min_dist_check_traj_collision"];
 }
 
 void ConfigParser::parseTrajectoryGeneratorProperties(json& config)

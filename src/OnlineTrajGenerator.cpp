@@ -125,6 +125,8 @@ bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd 
         return false;
     }
 
+    std::cout << "Updating gate " << gateId << std::endl;
+
 
     if(trajectoryCurrentlyUpdating){
         std::cerr << "Call to update trajectory, while previous update is still going on";
@@ -132,12 +134,40 @@ bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd 
     }
 
     trajectoryCurrentlyUpdating = true;
-    std::thread(&OnlineTrajGenerator::recomputeTraj, this, gateId, newPose, dronePos, nextGateWithinRange, flightTime).detach();
+    //std::thread(&OnlineTrajGenerator::recomputeTraj, this, gateId, newPose, dronePos, nextGateWithinRange, flightTime).detach();
+    recomputeTraj(gateId, newPose, dronePos, nextGateWithinRange, flightTime);
 
     return true;
 }
 
 void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd& newPose, const Eigen::Vector3d& dronePos, const bool nextGateWithinRange, const double flightTime){
+    
+    // double lookaheadTime = 1;
+    // int lookaheadSteps = std::ceil(lookaheadTime / configParser->getTrajectoryGeneratorProperties().samplingInterval);
+    // if (plannedTraj.rows() == 0)
+    // {
+    //     throw std::runtime_error("No trajectory data available.");
+    // }
+
+    // // find start idx
+    // const int lastColIdx = plannedTraj.cols() - 1;
+    // const Eigen::VectorXd &timeColumn = plannedTraj.col(lastColIdx);
+    // const Eigen::VectorXd timeDifferences = (timeColumn.array() - flightTime).abs();
+    // Eigen::Index minIndex;
+    // const double minTimeDifference = timeDifferences.minCoeff(&minIndex);
+
+    // const int startIdx = minIndex;
+    // const int endIdx = std::min(startIdx + lookaheadSteps, int(plannedTraj.rows()));
+    // const Eigen::MatrixXd& lookaheadTrajSegment = plannedTraj.block(startIdx, 0, endIdx - startIdx, plannedTraj.cols());
+    // const double minDistance = configParser->getPathPlannerProperties().minDistCheckTrajCollision;
+    // bool trajectoryValid = pathPlanner.checkTrajectoryValidity(lookaheadTrajSegment, minDistance);
+    // if(trajectoryValid){
+    //     std::cout << "Checked trajectory. It is not colliding, no need to recompute" << std::endl;
+    //     trajectoryCurrentlyUpdating = false;
+    //     return;
+    // }
+    // std::cout << "Checked trajectory. It is colliding, recomputing trajectory" << std::endl;
+    
     // Generally relevant idxs
     const int segmentIdPre = gateId;
     const int segmentIdPost = gateId + 1;
@@ -206,7 +236,7 @@ void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd&
         postSegmentResultPromise.set_value(postSegmentResult);
     });
 
-     preThread.join();
+    preThread.join();
     postThread.join();
 
     std::vector<Eigen::Vector3d> preSegmentPath = preSegmentFuture.get();

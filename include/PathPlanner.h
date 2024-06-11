@@ -21,6 +21,7 @@ class PathPlanner{
     void updateGatePos(const int gateId, const Eigen::Vector3d& newPose, const bool subtractHeight);
     
     std::set<int> checkTrajectoryValidityAndReturnCollisionIdx(const Eigen::MatrixXd &trajectoryPoints, const std::vector<Eigen::Vector3d> &prunedPath, int number_check_next_samples=-1) const;
+    bool checkTrajectoryValidity(const Eigen::MatrixXd& trajectory, const double minDistance) const;
     std::vector<Eigen::Vector3d> includeGates(const std::vector<std::vector<Eigen::Vector3d>> &waypoints) const;
     std::vector<Eigen::Vector3d> includeGates2(std::vector<std::vector<Eigen::Vector3d>> waypoints) const;
 

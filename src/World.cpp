@@ -27,8 +27,13 @@ void World::addGatePrivateOperation(const int gateId, const Eigen::VectorXd &coo
     Object obj = Object::createFromDescription(pos, rot, obbDescriptions);
     // on update remove old OBBs
     if (isUpdate)
-    {
+    {   
+        // no of obbs in tree
+        const int no_obj_before_delete = index.size();
         removeObject(gateId, "gate", obj.obbs.size(), inflateSizeGate);
+        const int no_obj_after_delete = index.size();
+        //std::cout << "Delted " << no_obj_after_delete - no_obj_before_delete << " obbs from " << no_obj_before_delete << " to " << no_obj_after_delete << std::endl;
+
     }
     // add new OBBs
     addObject(obj, gateId, "gate", inflateSizeGate);
@@ -106,6 +111,29 @@ bool World::checkPointValidity(const Eigen::Vector3d &point, const double inflat
     return true;
 }
 
+bool World::checkPointValidity(const Eigen::Vector3d& point, const double minDistance) const{
+    std::vector<value> potentialHits;
+    index.query(boost::geometry::index::contains(point), std::back_inserter(potentialHits));
+
+    for (const value &v : potentialHits)
+    {
+        OBB obb = obbs.at(v.second);
+
+        
+        // allowed to pass gates
+        if(obb.type=="filling"){
+            continue;
+        }
+
+        if (obb.checkCollisionWithPoint(point, minDistance))
+        {   
+            //std::cout << "Collision with " << v.second << std::endl;
+            return false;
+        }
+    }
+    return true;
+}
+
 bool World::checkRayValid(const Eigen::Vector3d &start, const Eigen::Vector3d &end, const bool canPassGate)
 {
     // create ray bounding box
@@ -131,9 +159,7 @@ bool World::checkRayValid(const Eigen::Vector3d &start, const Eigen::Vector3d &e
         }
 
         double inflateSize = isGate ? inflateSizeGate : inflateSizeObstacle;
-        if(canPassGate){
-            inflateSize *= 1;
-        }
+
         if (obb.checkCollisionWithRay(start, end, inflateSize))
         {
             return false;

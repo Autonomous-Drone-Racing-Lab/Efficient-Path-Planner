@@ -160,7 +160,7 @@ std::vector<Eigen::Vector3d> PathPlanner::includeGates2(std::vector<std::vector<
 
     std::vector<Eigen::Vector3d> waypointsFlattened;
     for(const auto& segment : waypoints){
-        std::vector<Eigen::Vector3d> prunedWaypoints = pruneWaypoints(segment);
+        std::vector<Eigen::Vector3d> prunedWaypoints = segment;// pruneWaypoints(segment);
         for(const auto& waypoint : prunedWaypoints){
             // do not include duplicates
             if(waypointsFlattened.size() > 0 && (waypointsFlattened.back() - waypoint).norm() < 0.05){
@@ -199,7 +199,7 @@ std::vector<Eigen::Vector3d> PathPlanner::pruneWaypoints(const std::vector<Eigen
 
     int waypintsBefore = waypoints.size();
     int waypointsAfter = prunedWaypoints.size();
-    //std::cout << "Pruned " << waypintsBefore - waypointsAfter << " waypoints from " << waypintsBefore << " to " << waypointsAfter << std::endl;
+    std::cout << "Pruned " << waypintsBefore - waypointsAfter << " waypoints from " << waypintsBefore << " to " << waypointsAfter << std::endl;
 
     // adding last waypoint necessary as path must end at goal. No risk of duplication as last waypoint never added in loop from before
     prunedWaypoints.push_back(waypoints[waypoints.size() - 1]); // add last waypoint
@@ -289,4 +289,17 @@ std::set<int> PathPlanner::checkTrajectoryValidityAndReturnCollisionIdx(const Ei
     }
 
     return insertionIndice;
+}
+
+bool PathPlanner::checkTrajectoryValidity(const Eigen::MatrixXd &trajectory, const double minDistance) const
+{
+    for (int i = 0; i < trajectory.rows(); i++)
+    {
+        const Eigen::Vector3d trajectoryPoint = trajectory.row(i);
+        if (!worldPtr->checkPointValidity(trajectoryPoint, minDistance))
+        {
+            return false;
+        }
+    }
+    return true;
 }
