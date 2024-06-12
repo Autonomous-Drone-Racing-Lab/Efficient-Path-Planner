@@ -161,7 +161,9 @@ std::vector<Eigen::Vector3d> PathPlanner::includeGates2(std::vector<std::vector<
     std::vector<Eigen::Vector3d> waypointsFlattened;
     for(const auto& segment : waypoints){
         const bool shouldPrunePath = configParser->getPathPlannerProperties().prunePath;
-        std::vector<Eigen::Vector3d> prunedWaypoints = shouldPrunePath ? pruneWaypoints(segment) :  segment;
+        //std::vector<Eigen::Vector3d> prunedWaypoints = shouldPrunePath ? pruneWaypoints(segment) :  segment;
+        std::vector<Eigen::Vector3d> prunedWaypoints =   segment;
+        //std::vector<Eigen::Vector3d> prunedWaypoints = omplPrunePathAndInterpolate(segment);
         for(const auto& waypoint : prunedWaypoints){
             // do not include duplicates
             if(waypointsFlattened.size() > 0 && (waypointsFlattened.back() - waypoint).norm() < 0.05){
@@ -170,7 +172,9 @@ std::vector<Eigen::Vector3d> PathPlanner::includeGates2(std::vector<std::vector<
             waypointsFlattened.push_back(waypoint);
         }
     }
-    return waypointsFlattened;
+    
+    return omplPrunePathAndInterpolate(waypointsFlattened);
+   //return waypointsFlattened;
 }
 
 std::vector<Eigen::Vector3d> PathPlanner::pruneWaypoints(const std::vector<Eigen::Vector3d> &waypoints) const
@@ -303,4 +307,35 @@ bool PathPlanner::checkTrajectoryValidity(const Eigen::MatrixXd &trajectory, con
         }
     }
     return true;
+}
+
+
+std::vector<Eigen::Vector3d> PathPlanner::omplPrunePathAndInterpolate(std::vector<Eigen::Vector3d> waypoints) const{
+
+    ompl::geometric::PathGeometric path(si);
+
+       for (const auto& point : waypoints) {
+        // Todo check for memory leakage
+        ob::State* state = space->allocState();
+        state->as<ob::RealVectorStateSpace::StateType>()->values[0] = point(0);
+        state->as<ob::RealVectorStateSpace::StateType>()->values[1] = point(1);
+        state->as<ob::RealVectorStateSpace::StateType>()->values[2] = point(2);
+
+        path.append(state);
+    }
+
+    ompl::geometric::PathSimplifier pathSimplifier(si);
+    //pathSimplifier.reduceVertices(path);
+    pathSimplifier.smoothBSpline(path);
+
+    // convert back to eigen vector<Eigen::Vector3d>
+        std::vector<Eigen::Vector3d> result;
+    for (std::size_t i = 0; i < path.getStateCount(); ++i) {
+        const auto* state = path.getState(i)->as<ob::RealVectorStateSpace::StateType>();
+        Eigen::Vector3d point(state->values[0], state->values[1], state->values[2]);
+        result.push_back(point);
+        //delete state;
+    }
+
+    return result;
 }

@@ -25,6 +25,8 @@ class PathPlanner{
     std::vector<Eigen::Vector3d> includeGates(const std::vector<std::vector<Eigen::Vector3d>> &waypoints) const;
     std::vector<Eigen::Vector3d> includeGates2(std::vector<std::vector<Eigen::Vector3d>> waypoints) const;
 
+    std::vector<Eigen::Vector3d> omplPrunePathAndInterpolate(std::vector<Eigen::Vector3d> waypoints) const;
+
     private:
     std::vector<Eigen::Vector3d> pruneWaypoints(const std::vector<Eigen::Vector3d> &waypoints) const;
 
