@@ -83,7 +83,7 @@ void World::removeObject(const int id, const std::string &type, const int noOfOb
     }
 }
 
-bool World::checkPointValidity(const Eigen::Vector3d &point, const double inflateScalingFactor, const bool canPassGate)
+bool World::checkPointValidity(const Eigen::Vector3d &point,  const bool canPassGate)
 {
     std::vector<value> potentialHits;
     index.query(boost::geometry::index::contains(point), std::back_inserter(potentialHits));
@@ -92,10 +92,8 @@ bool World::checkPointValidity(const Eigen::Vector3d &point, const double inflat
     {
         OBB obb = obbs.at(v.second);
 
-        bool isGate = v.second.find("gate") != std::string::npos;
-
-        double inflateSize = isGate ? inflateSizeGate : inflateSizeObstacle;
-        inflateSize *= inflateScalingFactor;
+        const bool isGate = v.second.find("gate") != std::string::npos;
+        const double inflateSize = isGate ? inflateSizeGate : inflateSizeObstacle;
         
         if(obb.type=="filling" and canPassGate){
             continue;
@@ -119,7 +117,6 @@ bool World::checkPointValidity(const Eigen::Vector3d& point, const double minDis
     {
         OBB obb = obbs.at(v.second);
 
-        
         // allowed to pass gates
         if(obb.type=="filling"){
             continue;

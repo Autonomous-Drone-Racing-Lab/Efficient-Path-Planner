@@ -26,13 +26,15 @@ class PathPlanner{
     std::vector<Eigen::Vector3d> includeGates2(std::vector<std::vector<Eigen::Vector3d>> waypoints) const;
 
     std::vector<Eigen::Vector3d> omplPrunePathAndInterpolate(std::vector<Eigen::Vector3d> waypoints) const;
-
+    std::shared_ptr<World> worldPtr;    
     private:
     std::vector<Eigen::Vector3d> pruneWaypoints(const std::vector<Eigen::Vector3d> &waypoints) const;
 
     ompl::base::StateSpacePtr space;
     ompl::base::SpaceInformationPtr si;
-    std::shared_ptr<World> worldPtr;
+    ompl::base::SpaceInformationPtr si2;
+
+    
     std::shared_ptr<ConfigParser> configParser;
 
     ompl::base::OptimizationObjectivePtr getStraightLineObjective(const ompl::base::SpaceInformationPtr& si, const Eigen::Vector3d& start, const Eigen::Vector3d& goal, const double optimalityThresholdPercentage);

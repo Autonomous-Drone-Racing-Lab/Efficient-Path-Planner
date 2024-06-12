@@ -24,11 +24,10 @@ public:
     void updateGatePosition(const int gateId, const Eigen::VectorXd& coordinates, const bool subtractGateHeight);
     void addObstacle(const int obstacleId, const Eigen::VectorXd& coordinates);
 
-    bool checkPointValidity(const Eigen::Vector3d& point, const double inflateScalingFactor=1, const bool canPassGate=false);
+    bool checkPointValidity(const Eigen::Vector3d& point, const bool canPassGate);
     bool checkPointValidity(const Eigen::Vector3d& point, const double minDistance) const;
     bool checkRayValid(const Eigen::Vector3d& start, const Eigen::Vector3d& end, const bool canPassGate=false);
     
-
 
 private:
     std::shared_ptr<ConfigParser> configParser;
