@@ -47,6 +47,7 @@ struct PathPlannerProperties
     double posDivergenceRecalculate;
     double rotDivergenceRecalculate;
     double minDistCheckTrajCollision;
+    bool prunePath;
 };
 
 struct TrajectoryGeneratorProperties{

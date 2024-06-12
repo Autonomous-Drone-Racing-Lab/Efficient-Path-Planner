@@ -160,7 +160,8 @@ std::vector<Eigen::Vector3d> PathPlanner::includeGates2(std::vector<std::vector<
 
     std::vector<Eigen::Vector3d> waypointsFlattened;
     for(const auto& segment : waypoints){
-        std::vector<Eigen::Vector3d> prunedWaypoints = segment;// pruneWaypoints(segment);
+        const bool shouldPrunePath = configParser->getPathPlannerProperties().prunePath;
+        std::vector<Eigen::Vector3d> prunedWaypoints = shouldPrunePath ? pruneWaypoints(segment) :  segment;
         for(const auto& waypoint : prunedWaypoints){
             // do not include duplicates
             if(waypointsFlattened.size() > 0 && (waypointsFlattened.back() - waypoint).norm() < 0.05){
