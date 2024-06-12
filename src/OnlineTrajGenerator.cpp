@@ -95,39 +95,78 @@ void OnlineTrajGenerator::preComputeTraj(const double takeoffTime)
 }
 
 bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd &newPose, const Eigen::Vector3d &dronePos, const bool nextGateWithinRange, const double flightTime)
-{   
-
-   // if(!gateHasOutstandingUpdated){
-    if (nextGateWithinRange)
-    {
-        gatesObservedWithinRange.insert(gateId);
+{   // when we are not in range we also dont have new information
+    if(!nextGateWithinRange){
+        return false;
     }
-
     // ignore if gate was already seen close up and is now no longer
-    if (gatesObservedWithinRange.find(gateId) != gatesObservedWithinRange.end() && !nextGateWithinRange)
+    if (gatesObservedWithinRange.find(gateId) != gatesObservedWithinRange.end())
     {
         return false;
     }
+    gatesObservedWithinRange.insert(gateId);
 
-    const Eigen::Vector3d &newPos = newPose.head(3);
-    const Eigen::Vector3d &oldPos = nominalGatePositionAndType.row(gateId).head(3);
-    const Eigen::Vector3d &newRot = newPose.segment(3, 3);
-    const Eigen::Vector3d &oldRot = nominalGatePositionAndType.row(gateId).segment(3, 3);
+    // no longer necessary, as we do proper check whether trajectory collides later
+    // const Eigen::Vector3d &newPos = newPose.head(3);
+    // const Eigen::Vector3d &oldPos = nominalGatePositionAndType.row(gateId).head(3);
+    // const Eigen::Vector3d &newRot = newPose.segment(3, 3);
+    // const Eigen::Vector3d &oldRot = nominalGatePositionAndType.row(gateId).segment(3, 3);
 
-    const double posInsinificanceThreshold = configParser -> getPathPlannerProperties().posDivergenceRecalculate;
-    const double rotInsinificanceThreshold = configParser -> getPathPlannerProperties().rotDivergenceRecalculate;
+    // const double posInsinificanceThreshold = configParser -> getPathPlannerProperties().posDivergenceRecalculate;
+    // const double rotInsinificanceThreshold = configParser -> getPathPlannerProperties().rotDivergenceRecalculate;
 
-    const double deltaPos = (newPos.topRows(2) - oldPos.topRows(2)).norm();
-    const double deltaRot = (newRot - oldRot).norm();
+    // const double deltaPos = (newPos.topRows(2) - oldPos.topRows(2)).norm();
+    // const double deltaRot = (newRot - oldRot).norm();
 
-    if (deltaPos < posInsinificanceThreshold && deltaRot < rotInsinificanceThreshold)
-    {
-        return false;
+    // if (deltaPos < posInsinificanceThreshold && deltaRot < rotInsinificanceThreshold)
+    // {
+    //     return false;
+    // }
+
+    // // find start idxr
+    const int lastColIdx = plannedTraj.cols() - 1;
+    const Eigen::VectorXd &timeColumn = plannedTraj.col(lastColIdx);
+    const Eigen::VectorXd timeDifferences = (timeColumn.array() - flightTime).abs();
+    Eigen::Index startIdx;
+    const double minTimeDifference = timeDifferences.minCoeff(&startIdx);
+
+    // find next gate
+    const int checkpointIdNextGate = 2*gateId + 3 < checkpoints.size() ? 2*gateId+3: checkpoints.size() - 1;
+    const Eigen::Vector3d& nextCheckpoint = checkpoints[checkpointIdNextGate];
+    Eigen::MatrixXd trajPos(plannedTraj.rows(), 3);
+    trajPos << plannedTraj.col(0), plannedTraj.col(3), plannedTraj.col(6);
+    const Eigen::VectorXd posDifferences = (trajPos.rowwise() - nextCheckpoint.transpose()).rowwise().norm();
+    Eigen::Index endIdx;
+    const double minDistance = posDifferences.minCoeff(&endIdx);
+    const Eigen::MatrixXd& lookaheadTrajSegment = plannedTraj.block(startIdx, 0, endIdx - startIdx, plannedTraj.cols());
+
+    // check that next gate pos is reasonable well passed
+    Eigen::Vector3d nextGatePos = newPose.head(3);
+    std::cout << "Next gate pos " << nextGatePos.transpose() << std::endl;
+    const Eigen::VectorXd posDifferencesNextGate = (trajPos.rowwise() - nextGatePos.transpose()).rowwise().norm();
+    const double minDistanceGate = posDifferencesNextGate.minCoeff();
+    bool trajectoryPassingNextGate;
+    if(minDistanceGate > 0.1){
+        std::cout << "Current trajectory not passing next gate. Must be recomputed" << std::endl;
+        trajectoryPassingNextGate = false;
+    }else{
+        std::cout << "Current trajectory is passing next gate" << std::endl;
+        trajectoryPassingNextGate = true;
+    }
+    
+
+
+    bool trajectoryValid = pathPlanner.checkTrajectoryValidity(lookaheadTrajSegment, minDistance);
+    if(trajectoryValid){
+        std::cout << "Checked trajectory. It is not colliding, no need to recompute" << std::endl;
+    }else{
+        std::cout << "Checked trajectory. It is colliding, recomputing trajectory" << std::endl;
     }
 
-    std::cout << "Updating gate " << gateId << std::endl;
-
-
+    if((trajectoryValid && trajectoryPassingNextGate)){
+        return false;
+    }
+    
     if(trajectoryCurrentlyUpdating){
         std::cerr << "Call to update trajectory, while previous update is still going on";
         exit(1);
@@ -148,25 +187,6 @@ void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd&
     // {
     //     throw std::runtime_error("No trajectory data available.");
     // }
-
-    // // find start idx
-    // const int lastColIdx = plannedTraj.cols() - 1;
-    // const Eigen::VectorXd &timeColumn = plannedTraj.col(lastColIdx);
-    // const Eigen::VectorXd timeDifferences = (timeColumn.array() - flightTime).abs();
-    // Eigen::Index minIndex;
-    // const double minTimeDifference = timeDifferences.minCoeff(&minIndex);
-
-    // const int startIdx = minIndex;
-    // const int endIdx = std::min(startIdx + lookaheadSteps, int(plannedTraj.rows()));
-    // const Eigen::MatrixXd& lookaheadTrajSegment = plannedTraj.block(startIdx, 0, endIdx - startIdx, plannedTraj.cols());
-    // const double minDistance = configParser->getPathPlannerProperties().minDistCheckTrajCollision;
-    // bool trajectoryValid = pathPlanner.checkTrajectoryValidity(lookaheadTrajSegment, minDistance);
-    // if(trajectoryValid){
-    //     std::cout << "Checked trajectory. It is not colliding, no need to recompute" << std::endl;
-    //     trajectoryCurrentlyUpdating = false;
-    //     return;
-    // }
-    // std::cout << "Checked trajectory. It is colliding, recomputing trajectory" << std::endl;
     
     // Generally relevant idxs
     const int segmentIdPre = gateId;
