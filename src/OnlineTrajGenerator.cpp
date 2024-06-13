@@ -251,6 +251,13 @@ void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd&
     const Eigen::Vector3d droneVelAdvanced = Eigen::Vector3d(advancedStartState(1), advancedStartState(4), advancedStartState(7));
     const Eigen::Vector3d droneAccAdvanced = Eigen::Vector3d(advancedStartState(2), advancedStartState(5), advancedStartState(8));
 
+    const bool advancedStartStateValid = pathPlanner.worldPtr->checkPointValidity(dronePosAdvanced, configParser->getPathPlannerProperties().canPassGate);
+    if(!advancedStartStateValid){
+        std::cerr << "Advanced trajectory does not end at valid position. No recomputation and hope for best" << std::endl;
+        trajectoryCurrentlyUpdating = false;
+        return;
+    }
+
 
     // Utilize two threads
     std::promise<std::vector<Eigen::Vector3d>> preSegmentPromise;

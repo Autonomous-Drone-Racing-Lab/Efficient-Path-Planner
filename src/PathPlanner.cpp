@@ -54,16 +54,17 @@ PathPlanner::PathPlanner(const Eigen::MatrixXd &nominalGatePositionAndType, cons
     space->as<ob::RealVectorStateSpace>()->setBounds(bounds);
 
     // SI cannot pass gates (normal state space)
+    const bool canPassGates = configParser->getPathPlannerProperties().canPassGate; 
     si = ob::SpaceInformationPtr(new ob::SpaceInformation(space));
     si->setStateValidityChecker(std::make_shared<StateValidator>(si, worldPtr, false));
     si->setMotionValidator(std::make_shared<MotionValidator>(si, worldPtr, false));
     si->setup();
 
     // si2 can pass gates
-    si2 = ob::SpaceInformationPtr(new ob::SpaceInformation(space));
-    si2->setStateValidityChecker(std::make_shared<StateValidator>(si2, worldPtr, true));
-    si2->setMotionValidator(std::make_shared<MotionValidator>(si2, worldPtr, true));
-    si2->setup();
+    // si2 = ob::SpaceInformationPtr(new ob::SpaceInformation(space));
+    // si2->setStateValidityChecker(std::make_shared<StateValidator>(si2, worldPtr, true));
+    // si2->setMotionValidator(std::make_shared<MotionValidator>(si2, worldPtr, true));
+    // si2->setup();
 }
 
 bool PathPlanner::planPath(const Eigen::Vector3d &start, const Eigen::Vector3d &goal, const double timeLimit, std::vector<Eigen::Vector3d> &resultPath) const
@@ -326,7 +327,7 @@ bool PathPlanner::checkTrajectoryValidity(const Eigen::MatrixXd &trajectory, con
 
 std::vector<Eigen::Vector3d> PathPlanner::omplPrunePathAndInterpolate(std::vector<Eigen::Vector3d> waypoints) const{
 
-    ompl::geometric::PathGeometric path(si2);
+    ompl::geometric::PathGeometric path(si);
 
        for (const auto& point : waypoints) {
         // Todo check for memory leakage
@@ -338,8 +339,8 @@ std::vector<Eigen::Vector3d> PathPlanner::omplPrunePathAndInterpolate(std::vecto
         path.append(state);
     }
 
-    ompl::geometric::PathSimplifier pathSimplifier(si2);
-    pathSimplifier.reduceVertices(path);
+    ompl::geometric::PathSimplifier pathSimplifier(si);
+    //pathSimplifier.reduceVertices(path);
     //pathSimplifier.shortcutPath(path);
     pathSimplifier.smoothBSpline(path);
 

@@ -50,6 +50,7 @@ struct PathPlannerProperties
     double minDistCheckTrajPassedGate;
     std::string pathSimplification;
     bool recalculateOnline;
+    bool canPassGate;
 };
 
 struct TrajectoryGeneratorProperties{

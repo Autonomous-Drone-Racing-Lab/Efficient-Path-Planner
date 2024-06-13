@@ -108,6 +108,7 @@ void ConfigParser::parsePathPlannerProperties(json& config)
     pathPlannerProperties.minDistCheckTrajPassedGate = config["path_planner_properties"]["min_dist_check_traj_passed_gate"];
     pathPlannerProperties.pathSimplification = config["path_planner_properties"]["path_simplification"];
     pathPlannerProperties.recalculateOnline = config["path_planner_properties"]["recalculate_online"]; 
+    pathPlannerProperties.canPassGate = config["path_planner_properties"]["can_pass_gate"]; 
 }
 
 void ConfigParser::parseTrajectoryGeneratorProperties(json& config)
