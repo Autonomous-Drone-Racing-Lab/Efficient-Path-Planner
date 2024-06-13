@@ -57,3 +57,19 @@ void PathWriter::writePath(const std::vector<Eigen::Vector3d> &path)
     file.close();
     write_count++;
 }
+
+void PathWriter::updateGatePos(const int gateId, const Eigen::VectorXd& gateInfo)
+{
+   const std::string fileName = "gates.txt";
+    const std::string filePath = folderPath + "/" + fileName;
+
+    std::ofstream file(filePath, std::ios_base::app);
+    if (!file.is_open())
+    {
+        std::cerr << "Failed to open file for writing: " << fileName << std::endl;
+        return;
+    }
+
+    file << "id: " << gateId << " info: " << gateInfo.transpose() << std::endl;
+}
+

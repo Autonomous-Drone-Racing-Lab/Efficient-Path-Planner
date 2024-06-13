@@ -10,6 +10,12 @@ OnlineTrajGenerator::OnlineTrajGenerator(const Eigen::Vector3d start, const Eige
       pathPlanner(PathPlanner(nominalGatePositionAndType, nominalObstaclePosition, configParser)),
       nominalGatePositionAndType(nominalGatePositionAndType)
 {
+
+    // write nominal gate positions and types to file
+    for(int i = 0; i < nominalGatePositionAndType.rows(); ++i){
+        pathWriter.updateGatePos(i, nominalGatePositionAndType.row(i));
+    }
+
     // parse checkpoints
     checkpoints.push_back(start);
     for (int i = 0; i < nominalGatePositionAndType.rows(); i++)
@@ -116,7 +122,7 @@ bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd 
     // update nominal gate position
     nominalGatePositionAndType.row(gateId).head(6) = newPose;
     pathPlanner.updateGatePos(gateId, nominalGatePositionAndType.row(gateId), nextGateWithinRange); // if next gate within range, the view of the gate changes and we must subtract its height
-
+    pathWriter.updateGatePos(gateId, nominalGatePositionAndType.row(gateId));
 
     // no longer necessary, as we do proper check whether trajectory collides later
     // const Eigen::Vector3d &newPos = newPose.head(3);
@@ -202,14 +208,7 @@ bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd 
 }
 
 void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd& newPose, const Eigen::Vector3d& dronePos, const bool nextGateWithinRange, const double flightTime){
-    
-    // double lookaheadTime = 1;
-    // int lookaheadSteps = std::ceil(lookaheadTime / configParser->getTrajectoryGeneratorProperties().samplingInterval);
-    // if (plannedTraj.rows() == 0)
-    // {
-    //     throw std::runtime_error("No trajectory data available.");
-    // }
-    
+        
     // Generally relevant idxs
     const int segmentIdPre = gateId;
     const int segmentIdPost = gateId + 1;
