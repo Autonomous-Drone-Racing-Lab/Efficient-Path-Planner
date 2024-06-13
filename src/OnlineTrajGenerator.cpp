@@ -16,6 +16,11 @@ OnlineTrajGenerator::OnlineTrajGenerator(const Eigen::Vector3d start, const Eige
         pathWriter.updateGatePos(i, nominalGatePositionAndType.row(i));
     }
 
+    // write obstacle pos to file
+    for(int i = 0; i<nominalObstaclePosition.rows(); i++){
+        pathWriter.updateObstaclePos(i, nominalObstaclePosition.row(i));
+    }
+
     // parse checkpoints
     checkpoints.push_back(start);
     for (int i = 0; i < nominalGatePositionAndType.rows(); i++)

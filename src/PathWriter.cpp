@@ -73,3 +73,17 @@ void PathWriter::updateGatePos(const int gateId, const Eigen::VectorXd& gateInfo
     file << "id: " << gateId << " info: " << gateInfo.transpose() << std::endl;
 }
 
+
+void PathWriter::updateObstaclePos(const int obstacleId, const Eigen::VectorXd& pose){
+    const std::string fileName = "obstacles.txt";
+    const std::string filePath = folderPath + "/" + fileName;
+
+    std::ofstream file(filePath, std::ios_base::app);
+    if (!file.is_open())
+    {
+        std::cerr << "Failed to open file for writing: " << fileName << std::endl;
+        return;
+    }
+
+    file << "id: " << obstacleId << " info: " << pose.transpose() << std::endl;
+}
