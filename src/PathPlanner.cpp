@@ -164,10 +164,20 @@ std::vector<Eigen::Vector3d> PathPlanner::includeGates2(std::vector<std::vector<
 
     std::vector<Eigen::Vector3d> waypointsFlattened;
     for(const auto& segment : waypoints){
-        const bool shouldPrunePath = configParser->getPathPlannerProperties().prunePath;
-        //std::vector<Eigen::Vector3d> prunedWaypoints = shouldPrunePath ? pruneWaypoints(segment) :  segment;
-        //std::vector<Eigen::Vector3d> prunedWaypoints =   segment;
-        std::vector<Eigen::Vector3d> prunedWaypoints = omplPrunePathAndInterpolate(segment);
+        const std::string simplificationMethod = configParser->getPathPlannerProperties().pathSimplification;
+        std::vector<Eigen::Vector3d> prunedWaypoints;
+        if(simplificationMethod == "none"){
+            prunedWaypoints = segment;
+        }else if(simplificationMethod == "ompl"){
+            prunedWaypoints = omplPrunePathAndInterpolate(segment);
+        }else if(simplificationMethod == "custom"){
+            prunedWaypoints = pruneWaypoints(segment);
+        }
+        else{
+            std::cerr << "Unknown pruning method" << std::endl;
+            exit(1);
+        }
+
        for(const auto& waypoint : prunedWaypoints){
             // do not include duplicates
             if(waypointsFlattened.size() > 0 && (waypointsFlattened.back() - waypoint).norm() < 0.05){
@@ -176,8 +186,6 @@ std::vector<Eigen::Vector3d> PathPlanner::includeGates2(std::vector<std::vector<
             waypointsFlattened.push_back(waypoint);
         }
     }
-    
-    //return omplPrunePathAndInterpolate(waypointsFlattened);
     return waypointsFlattened;
 }
 

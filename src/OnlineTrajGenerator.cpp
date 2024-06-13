@@ -163,7 +163,7 @@ bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd 
     const Eigen::VectorXd posDifferencesNextGate = (trajPos.rowwise() - nextGatePos.transpose()).rowwise().norm();
     const double minDistanceGate = posDifferencesNextGate.minCoeff();
     bool trajectoryPassingNextGate;
-    if(minDistanceGate > 0.2){
+    if(minDistanceGate > configParser->getPathPlannerProperties().minDistCheckTrajPassedGate){
         std::cout << "Current trajectory not passing next gate. Must be recomputed" << std::endl;
         trajectoryPassingNextGate = false;
     }else{
@@ -190,9 +190,14 @@ bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd 
     }
 
     trajectoryCurrentlyUpdating = true;
-    //std::thread(&OnlineTrajGenerator::recomputeTraj, this, gateId, newPose, dronePos, nextGateWithinRange, flightTime).detach();
-    recomputeTraj(gateId, newPose, dronePos, nextGateWithinRange, flightTime);
-
+    const bool recalculateOnline = configParser->getPathPlannerProperties().recalculateOnline;
+    if(recalculateOnline){
+        std::thread(&OnlineTrajGenerator::recomputeTraj, this, gateId, newPose, dronePos, nextGateWithinRange, flightTime).detach();
+    }
+    else{
+        recomputeTraj(gateId, newPose, dronePos, nextGateWithinRange, flightTime);
+    }
+   
     return true;
 }
 
