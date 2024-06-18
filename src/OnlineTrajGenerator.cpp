@@ -13,12 +13,14 @@ OnlineTrajGenerator::OnlineTrajGenerator(const Eigen::Vector3d start, const Eige
 {
 
     // write nominal gate positions and types to file
-    for(int i = 0; i < nominalGatePositionAndType.rows(); ++i){
+    for (int i = 0; i < nominalGatePositionAndType.rows(); ++i)
+    {
         pathWriter.updateGatePos(i, nominalGatePositionAndType.row(i));
     }
 
     // write obstacle pos to file
-    for(int i = 0; i<nominalObstaclePosition.rows(); i++){
+    for (int i = 0; i < nominalObstaclePosition.rows(); i++)
+    {
         pathWriter.updateObstaclePos(i, nominalObstaclePosition.row(i));
     }
 
@@ -40,7 +42,7 @@ OnlineTrajGenerator::OnlineTrajGenerator(const Eigen::Vector3d start, const Eige
     pathWriter.writeCheckpoints(checkpoints);
 }
 
-bool OnlineTrajGenerator::getGateCenterAndNormal(const Eigen::VectorXd &gatePostAndType,  Eigen::Vector3d &center, Eigen::Vector3d &normal)
+bool OnlineTrajGenerator::getGateCenterAndNormal(const Eigen::VectorXd &gatePostAndType, Eigen::Vector3d &center, Eigen::Vector3d &normal)
 {
     const Eigen::Vector3d &gatePosition = gatePostAndType.head(3);
     const Eigen::Vector3d &gateRotation = gatePostAndType.segment(3, 3);
@@ -55,7 +57,7 @@ bool OnlineTrajGenerator::getGateCenterAndNormal(const Eigen::VectorXd &gatePost
 
     const double gateHeight = configParser->getObjectPropertiesByTypeId(gateType).height;
     center = gatePosition + Eigen::Vector3d(0, 0, gateHeight);
-    
+
     normal << -sin(gateRotation(2)), cos(gateRotation(2)), 0;
     normal.normalize();
 
@@ -87,24 +89,41 @@ void OnlineTrajGenerator::preComputeTraj(const double takeoffTime)
     //     }
     // }
 
-
     const std::vector<Eigen::Vector3d> prunedPath = pathPlanner.includeGates2(pathSegments);
     pathWriter.writePath(prunedPath);
 
-    const double v_max = configParser->getTrajectoryGeneratorProperties().maxVelocity;
-    const double a_max = configParser->getTrajectoryGeneratorProperties().maxAcceleration;
     const double samplingInterval = configParser->getTrajectoryGeneratorProperties().samplingInterval;
+    Eigen::MatrixXd traj;
 
-    const Eigen::Vector3d initialVel = Eigen::Vector3d::Zero();
-    const Eigen::Vector3d initialAcc = Eigen::Vector3d::Zero();
-    poly_traj::generateTrajectory(prunedPath, v_max, a_max, samplingInterval, takeoffTime, initialVel, initialAcc, plannedTraj);
+    if (configParser->getTrajectoryGeneratorProperties().type == "snap")
+    {
+        const double v_max = configParser->getTrajectoryGeneratorProperties().maxVelocity;
+        const double a_max = configParser->getTrajectoryGeneratorProperties().maxAcceleration;
+        const Eigen::Vector3d zeros(0, 0, 0);
+        poly_traj::generateTrajectory(prunedPath, v_max, a_max, samplingInterval, 0, zeros, zeros, traj);
+    }
+    else if (configParser->getTrajectoryGeneratorProperties().type == "spline")
+    {
+        const double maxT = configParser->getTrajectoryGeneratorProperties().maxTime;
+        const double v_max = configParser->getTrajectoryGeneratorProperties().maxVelocity;
+        const double a_max = configParser->getTrajectoryGeneratorProperties().maxAcceleration;
+        traj = trajInterpolator.interpolateTraj(prunedPath, maxT, 0, samplingInterval);
+        // trajPartPost = trajInterpolator.interpolateTrajMaxVel(filledWaypoints,0, v_max, a_max, advancedTime, samplingInterval);
+    }
+    else
+    {
+        std::cerr << "Trajectory type not supported" << std::endl;
+        exit(1);
+    }
+    plannedTraj = traj;
 }
 
-bool OnlineTrajGenerator::updateGatePos(const int gateId,  const Eigen::VectorXd& newPose, const Eigen::Vector3d &dronePos, const bool nextGateWithinRange, const double flightTime)
-{   
-    
+bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd &newPose, const Eigen::Vector3d &dronePos, const bool nextGateWithinRange, const double flightTime)
+{
+
     // when we are not in range we also dont have new information
-    if(!nextGateWithinRange){
+    if (!nextGateWithinRange)
+    {
         return false;
     }
     // ignore if gate was already seen close up and is now no longer
@@ -112,8 +131,8 @@ bool OnlineTrajGenerator::updateGatePos(const int gateId,  const Eigen::VectorXd
     {
         return false;
     }
-    //ignore if we canno construct path from where we are currently
-    if(!pathPlanner.worldPtr->checkPointValidity(dronePos, false))
+    // ignore if we canno construct path from where we are currently
+    if (!pathPlanner.worldPtr->checkPointValidity(dronePos, false))
     {
         return false;
     }
@@ -121,8 +140,8 @@ bool OnlineTrajGenerator::updateGatePos(const int gateId,  const Eigen::VectorXd
 
     // update nominal gate position
     nominalGatePositionAndType.row(gateId).head(6) = newPose;
-    //pathPlanner.updateGatePos(gateId, nominalGatePositionAndType.row(gateId)); // if next gate within range, the view of the gate changes and we must subtract its height
-    pathPlanner.parseGatesAndObstacles(nominalGatePositionAndType,nominalObstaclePosition);
+    // pathPlanner.updateGatePos(gateId, nominalGatePositionAndType.row(gateId)); // if next gate within range, the view of the gate changes and we must subtract its height
+    pathPlanner.parseGatesAndObstacles(nominalGatePositionAndType, nominalObstaclePosition);
     pathWriter.updateGatePos(gateId, nominalGatePositionAndType.row(gateId));
 
     // // find start idxr
@@ -133,67 +152,77 @@ bool OnlineTrajGenerator::updateGatePos(const int gateId,  const Eigen::VectorXd
     const double minTimeDifference = timeDifferences.minCoeff(&startIdx);
 
     // find next gate
-    const int checkpointIdNextGate = 2*gateId + 3 < checkpoints.size() ? 2*gateId+3: checkpoints.size() - 1;
-    const Eigen::Vector3d& nextCheckpoint = checkpoints[checkpointIdNextGate];
+    const int checkpointIdNextGate = 2 * gateId + 3 < checkpoints.size() ? 2 * gateId + 3 : checkpoints.size() - 1;
+    const Eigen::Vector3d &nextCheckpoint = checkpoints[checkpointIdNextGate];
     Eigen::MatrixXd trajPos(plannedTraj.rows(), 3);
     trajPos << plannedTraj.col(0), plannedTraj.col(3), plannedTraj.col(6);
     const Eigen::VectorXd posDifferences = (trajPos.rowwise() - nextCheckpoint.transpose()).rowwise().norm();
     Eigen::Index endIdx;
     const double minDistance = posDifferences.minCoeff(&endIdx);
-    const Eigen::MatrixXd& lookaheadTrajSegment = plannedTraj.block(startIdx, 0, endIdx - startIdx, plannedTraj.cols());
+    const Eigen::MatrixXd &lookaheadTrajSegment = plannedTraj.block(startIdx, 0, endIdx - startIdx, plannedTraj.cols());
 
     // check that next gate pos is reasonable well passed
     Eigen::Vector3d nextGatePos = newPose.head(3);
     const Eigen::VectorXd posDifferencesNextGate = (trajPos.rowwise() - nextGatePos.transpose()).rowwise().norm();
     const double minDistanceGate = posDifferencesNextGate.minCoeff();
     bool trajectoryPassingNextGate;
-    if(minDistanceGate > configParser->getPathPlannerProperties().minDistCheckTrajPassedGate){
+    if (minDistanceGate > configParser->getPathPlannerProperties().minDistCheckTrajPassedGate)
+    {
         std::cout << "Current trajectory not passing next gate. Must be recomputed" << std::endl;
         trajectoryPassingNextGate = false;
-    }else{
+    }
+    else
+    {
         std::cout << "Current trajectory is passing next gate" << std::endl;
         trajectoryPassingNextGate = true;
     }
-    
+
     const double minDistanceCollision = configParser->getPathPlannerProperties().minDistCheckTrajCollision;
     std::cout << "Min distance collision" << minDistanceCollision << std::endl;
     bool trajectoryValid = pathPlanner.checkTrajectoryValidity(lookaheadTrajSegment, minDistanceCollision);
-    if(trajectoryValid){
+    if (trajectoryValid)
+    {
         std::cout << "Checked trajectory. It is not colliding, no need to recompute" << std::endl;
-    }else{
+    }
+    else
+    {
         std::cout << "Checked trajectory. It is colliding, recomputing trajectory" << std::endl;
     }
 
-    if(trajectoryValid && trajectoryPassingNextGate){
+    if (trajectoryValid && trajectoryPassingNextGate)
+    {
         return false;
     }
-    
-    if(trajectoryCurrentlyUpdating){
+
+    if (trajectoryCurrentlyUpdating)
+    {
         std::cerr << "Call to update trajectory, while previous update is still going on";
         exit(1);
     }
 
     trajectoryCurrentlyUpdating = true;
     const bool recalculateOnline = configParser->getPathPlannerProperties().recalculateOnline;
-    if(recalculateOnline){
+    if (recalculateOnline)
+    {
         std::thread(&OnlineTrajGenerator::recomputeTraj, this, gateId, newPose, dronePos, flightTime).detach();
     }
-    else{
+    else
+    {
         recomputeTraj(gateId, newPose, dronePos, flightTime);
     }
-   
+
     return true;
 }
 
-void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd& newPose, const Eigen::Vector3d& dronePos, const double flightTime){
-        
+void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd &newPose, const Eigen::Vector3d &dronePos, const double flightTime)
+{
+
     // Generally relevant idxs
     const int segmentIdPre = gateId;
     const int segmentIdPost = gateId + 1;
     const int checkpointIdPre = 2 * gateId + 1;
     const int checkpointIdPost = 2 * gateId + 2;
     const int checkpointIdNextGate = 2 * gateId + 3;
-    
 
     // update checkpoints
     Eigen::Vector3d center, normal;
@@ -207,31 +236,35 @@ void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd&
 
     // advance trajectory by delta t. Approximately accounting for time it takes us to recomputeTraj
     const double advanceTime = configParser->getPathPlannerProperties().timeLimitOnline + 0.05; // 50 ms added for general computation overhead
-    const double advancedTime = flightTime + advanceTime;
+    double advancedTime = flightTime;
+    if(configParser->getPathPlannerProperties().advanceForCalculation){
+        advancedTime += advanceTime;
+    }
     int startIdxAdvanced;
     // we could only include time from, now however, we include full trajectory to preetify printing
-    for(startIdxAdvanced = 0; startIdxAdvanced < plannedTraj.rows(); startIdxAdvanced++){
+    for (startIdxAdvanced = 0; startIdxAdvanced < plannedTraj.rows(); startIdxAdvanced++)
+    {
         const Eigen::MatrixXd &state = plannedTraj.row(startIdxAdvanced);
         const int timeIdx = state.cols() - 1;
 
-        if(state(timeIdx) > advancedTime){
+        if (state(timeIdx) > advancedTime)
+        {
             break;
         }
     }
-
-    const Eigen::MatrixXd& trajectoryPartPre = plannedTraj.topRows(startIdxAdvanced);
-    const Eigen::MatrixXd& advancedStartState = plannedTraj.row(startIdxAdvanced + 1);
+    const Eigen::MatrixXd &trajectoryPartPre = plannedTraj.topRows(startIdxAdvanced);
+    const Eigen::MatrixXd &advancedStartState = plannedTraj.row(startIdxAdvanced + 1);
     const Eigen::Vector3d dronePosAdvanced = Eigen::Vector3d(advancedStartState(0), advancedStartState(3), advancedStartState(6));
     const Eigen::Vector3d droneVelAdvanced = Eigen::Vector3d(advancedStartState(1), advancedStartState(4), advancedStartState(7));
     const Eigen::Vector3d droneAccAdvanced = Eigen::Vector3d(advancedStartState(2), advancedStartState(5), advancedStartState(8));
 
     const bool advancedStartStateValid = pathPlanner.worldPtr->checkPointValidity(dronePosAdvanced, configParser->getPathPlannerProperties().canPassGate);
-    if(!advancedStartStateValid){
+    if (!advancedStartStateValid)
+    {
         std::cerr << "Advanced trajectory does not end at valid position. No recomputation and hope for best" << std::endl;
         trajectoryCurrentlyUpdating = false;
         return;
     }
-
 
     // Utilize two threads
     std::promise<std::vector<Eigen::Vector3d>> preSegmentPromise;
@@ -245,20 +278,20 @@ void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd&
     std::future<bool> postSegmentResultFuture = postSegmentResultPromise.get_future();
 
     // first segment drone to gate
-    std::thread preThread([&]() {
+    std::thread preThread([&]()
+                          {
         std::vector<Eigen::Vector3d> preSegmentPath;
         bool preSegmentResult = pathPlanner.planPath(dronePosAdvanced, checkpoints[checkpointIdPre], configParser->getPathPlannerProperties().timeLimitOnline, preSegmentPath);
         preSegmentPromise.set_value(preSegmentPath);
-        preSegmentResultPromise.set_value(preSegmentResult);
-    });
+        preSegmentResultPromise.set_value(preSegmentResult); });
 
     // second segment gate to next gate
-    std::thread postThread([&]() {
+    std::thread postThread([&]()
+                           {
         std::vector<Eigen::Vector3d> postSegmentPath;       
         bool postSegmentResult = pathPlanner.planPath(checkpoints[checkpointIdPost], checkpoints[checkpointIdNextGate], configParser->getPathPlannerProperties().timeLimitOnline, postSegmentPath);
         postSegmentPromise.set_value(postSegmentPath);
-        postSegmentResultPromise.set_value(postSegmentResult);
-    });
+        postSegmentResultPromise.set_value(postSegmentResult); });
 
     preThread.join();
     postThread.join();
@@ -268,13 +301,15 @@ void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd&
     bool preSegmentResult = preSegmentResultFuture.get();
     bool postSegmentResult = postSegmentResultFuture.get();
 
-    if (!preSegmentResult) {
+    if (!preSegmentResult)
+    {
         std::cerr << "Pre path not found. Exiting" << std::endl;
         exit(1);
     }
     pathSegments[segmentIdPre] = preSegmentPath;
 
-    if (!postSegmentResult) {
+    if (!postSegmentResult)
+    {
         std::cerr << "Post segment path not found. Exiting" << std::endl;
         exit(1);
     }
@@ -290,12 +325,29 @@ void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd&
     std::vector<Eigen::Vector3d> filledWaypoints = pathPlanner.includeGates2(pathSegmentsSlice);
     pathWriter.writePath(filledWaypoints);
 
-    const double v_max = configParser->getTrajectoryGeneratorProperties().maxVelocity;
-    const double a_max = configParser->getTrajectoryGeneratorProperties().maxAcceleration;
     const double samplingInterval = configParser->getTrajectoryGeneratorProperties().samplingInterval;
     Eigen::MatrixXd trajPartPost;
-    poly_traj::generateTrajectory(filledWaypoints, v_max, a_max, samplingInterval, flightTime, droneVelAdvanced, droneAccAdvanced, trajPartPost);
-    
+
+    if (configParser->getTrajectoryGeneratorProperties().type == "snap")
+    {
+        const double v_max = configParser->getTrajectoryGeneratorProperties().maxVelocity;
+        const double a_max = configParser->getTrajectoryGeneratorProperties().maxAcceleration;
+        poly_traj::generateTrajectory(filledWaypoints, v_max, a_max, samplingInterval, advancedTime, droneVelAdvanced, droneAccAdvanced, trajPartPost);
+    }
+    else if (configParser->getTrajectoryGeneratorProperties().type == "spline")
+    {
+        const double maxT = configParser->getTrajectoryGeneratorProperties().maxTime;
+        const double v_max = configParser->getTrajectoryGeneratorProperties().maxVelocity;
+        const double a_max = configParser->getTrajectoryGeneratorProperties().maxAcceleration;
+        trajPartPost = trajInterpolator.interpolateTraj(filledWaypoints, maxT, advancedTime, samplingInterval);
+        // trajPartPost = trajInterpolator.interpolateTrajMaxVel(filledWaypoints,0, v_max, a_max, advancedTime, samplingInterval);
+    }
+    else
+    {
+        std::cerr << "Trajectory type not supported" << std::endl;
+        exit(1);
+    }
+
     // merge trajectories together, pre computed and current
     Eigen::MatrixXd newTraj(trajPartPost.rows() + trajectoryPartPre.rows(), trajPartPost.cols());
     newTraj << trajectoryPartPre, trajPartPost;

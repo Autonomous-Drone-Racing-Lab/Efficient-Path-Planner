@@ -15,10 +15,7 @@ void World::addGatePrivateOperation(const int gateId, const Eigen::VectorXd &coo
 
     Eigen::Vector3d pos = coordinates.head(3);
     pos(2) = 0.0;
-    std::cout << "Adding gate at " << pos.transpose() << std::endl;
-    std::cout << "Coordinates " << coordinates.transpose() << std::endl;
     Eigen::Vector3d rot = coordinates.segment(3, 3);
-    std::cout << "Rotation " << rot.transpose() << std::endl;
     int type = coordinates(6);
     const std::vector<OBBDescription> &obbDescriptions = configParser->getGateGeometryByTypeId(type);
     const ObjectProperties &objectProperties = configParser->getObjectPropertiesByTypeId(type);

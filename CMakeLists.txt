@@ -26,6 +26,7 @@ add_library(${PROJECT_NAME} STATIC
     src/StateValidator.cpp
     src/OnlineTrajGenerator.cpp
     src/PathWriter.cpp
+    src/TrajInterpolation.cpp
 )
 set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
