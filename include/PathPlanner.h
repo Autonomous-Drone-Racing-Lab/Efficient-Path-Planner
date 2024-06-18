@@ -17,20 +17,26 @@ class PathPlanner{
     public: 
     PathPlanner(const Eigen::MatrixXd& nominalGatePositionAndType, const Eigen::MatrixXd& nominalObstaclePosition, std::shared_ptr<ConfigParser> configParser);
 
+    void parseGatesAndObstacles(const Eigen::MatrixXd& nominalGatePositionAndType, const Eigen::MatrixXd& nominalObstaclePosition);
+    
     bool planPath(const Eigen::Vector3d& start, const Eigen::Vector3d& goal, const double timeLimit, std::vector<Eigen::Vector3d>& resultPath) const;
-    void updateGatePos(const int gateId, const Eigen::Vector3d& newPose, const bool subtractHeight);
+    void updateGatePos(const int gateId, const Eigen::Vector3d& newPose);
     
     std::set<int> checkTrajectoryValidityAndReturnCollisionIdx(const Eigen::MatrixXd &trajectoryPoints, const std::vector<Eigen::Vector3d> &prunedPath, int number_check_next_samples=-1) const;
     bool checkTrajectoryValidity(const Eigen::MatrixXd& trajectory, const double minDistance) const;
     std::vector<Eigen::Vector3d> includeGates(const std::vector<std::vector<Eigen::Vector3d>> &waypoints) const;
     std::vector<Eigen::Vector3d> includeGates2(std::vector<std::vector<Eigen::Vector3d>> waypoints) const;
 
+    std::vector<Eigen::Vector3d> omplPrunePathAndInterpolate(std::vector<Eigen::Vector3d> waypoints) const;
+    std::shared_ptr<World> worldPtr;    
     private:
     std::vector<Eigen::Vector3d> pruneWaypoints(const std::vector<Eigen::Vector3d> &waypoints) const;
 
     ompl::base::StateSpacePtr space;
     ompl::base::SpaceInformationPtr si;
-    std::shared_ptr<World> worldPtr;
+    ompl::base::SpaceInformationPtr si2;
+
+    
     std::shared_ptr<ConfigParser> configParser;
 
     ompl::base::OptimizationObjectivePtr getStraightLineObjective(const ompl::base::SpaceInformationPtr& si, const Eigen::Vector3d& start, const Eigen::Vector3d& goal, const double optimalityThresholdPercentage);

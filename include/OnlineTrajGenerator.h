@@ -23,13 +23,14 @@ public:
 
 private:
     bool trajectoryCurrentlyUpdating = false;
-    void recomputeTraj(const int gateId, const Eigen::VectorXd& newPose, const Eigen::Vector3d& dronePos, const bool nextGateWithinRange, const double flightTime);
+    void recomputeTraj(const int gateId, const Eigen::VectorXd& newPose, const Eigen::Vector3d& dronePos, const double flightTime);
     
     
     std::shared_ptr<ConfigParser> configParser;
     PathPlanner pathPlanner;
 
     Eigen::MatrixXd nominalGatePositionAndType;
+    Eigen::MatrixXd nominalObstaclePosition;
     std::vector<Eigen::Vector3d> checkpoints;
     std::set<int> gatesObservedWithinRange;
     std::map<int, float> outstandingGateUpdates;
@@ -38,6 +39,6 @@ private:
     PathWriter pathWriter = PathWriter("path_segments");
 
    
-    bool getGateCenterAndNormal(const Eigen::VectorXd &gatePostAndType, const bool subtractHeight, Eigen::Vector3d &center, Eigen::Vector3d &normal);
+    bool getGateCenterAndNormal(const Eigen::VectorXd &gatePostAndType, Eigen::Vector3d &center, Eigen::Vector3d &normal);
    // void storePathSegmentsToFile(const std::string &path, const int startSegment);
 };

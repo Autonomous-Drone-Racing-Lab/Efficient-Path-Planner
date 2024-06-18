@@ -21,7 +21,7 @@ public:
     std::string type;
     std::string name;
     box boundingBox;
-    bool shouldBeInflated()const{
+    bool shouldBeInflated() const{
         return type == "collision";
     }
 };

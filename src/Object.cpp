@@ -5,16 +5,14 @@
 #include "Types.h"
 #include <string>
 #include <vector>
+#include <iostream>
 
-Object::Object(const Eigen::Vector3d& globalCenter, const Eigen::Matrix3d& globalRotation, const std::vector<OBB>& obbs) :globalCenter(globalCenter), globalRotation(globalRotation){
-    // tranform all obbs to global coordinates considereing global center and rotation
-    std::vector<OBB> transformedOBBs = obbs;
-    for (OBB &obb : transformedOBBs)
-    {
-        obb.rotation = globalRotation;
-        obb.center += globalCenter;
-    }
-    this->obbs = transformedOBBs;
+Object::Object(const Eigen::Vector3d& center, const double rot_z, const std::vector<OBB>& obbs): obbs(obbs){
+    this->globalCenter = Eigen::Vector3d(0,0,0);
+    this->globalRotation = Eigen::Matrix3d::Identity();
+    
+    this->translate(center);
+    this->rotateZ(rot_z, true);
 }
 
 Object Object::createFromDescription(const Eigen::Vector3d& globalCenter, const Eigen::Vector3d& globalRotation,  const std::vector<OBBDescription> &obbDescriptions)
@@ -25,20 +23,22 @@ Object Object::createFromDescription(const Eigen::Vector3d& globalCenter, const 
         obbs.push_back(OBB(obbDescription.center, obbDescription.halfSize, obbDescription.type, obbDescription.name));
     }
 
-    // create rotation matrix from angles in global rotation (angles in radians)
-    double cos_x = cos(globalRotation(0));
-    double sin_x = sin(globalRotation(0));
-    double cos_y = cos(globalRotation(1));
-    double sin_y = sin(globalRotation(1));
-    double cos_z = cos(globalRotation(2));
-    double sin_z = sin(globalRotation(2));
+    const double rot_theta = globalRotation(0);
+    const double rot_psi = globalRotation(1);
+    const double rot_phi = globalRotation(2);
 
-    Eigen::Matrix3d rotation;
-    rotation << cos_y * cos_z, -cos_y * sin_z, sin_y,
-        cos_x * sin_z + sin_x * sin_y * cos_z, cos_x * cos_z - sin_x * sin_y * sin_z, -sin_x * cos_y,
-        sin_x * sin_z - cos_x * sin_y * cos_z, sin_x * cos_z + cos_x * sin_y * sin_z, cos_x * cos_y;
+    if(abs(rot_theta) > 1e-6){
+        std::cerr << "Rotation around x axis is not supported" << std::endl;
+        exit(1);
+    }
+    if (abs(rot_psi) > 1e-6){
+        std::cerr << "Rotation around y axis is not supported" << std::endl;
+        exit(1);
+    }
 
-    return Object(globalCenter, rotation, obbs);
+    
+
+    return Object(globalCenter, rot_phi, obbs);
 }
 
 void Object::translate(const Eigen::Vector3d& translation)

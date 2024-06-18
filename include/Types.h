@@ -47,7 +47,10 @@ struct PathPlannerProperties
     double posDivergenceRecalculate;
     double rotDivergenceRecalculate;
     double minDistCheckTrajCollision;
-    bool prunePath;
+    double minDistCheckTrajPassedGate;
+    std::string pathSimplification;
+    bool recalculateOnline;
+    bool canPassGate;
 };
 
 struct TrajectoryGeneratorProperties{

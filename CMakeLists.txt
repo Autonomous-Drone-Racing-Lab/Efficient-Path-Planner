@@ -61,6 +61,9 @@ target_link_libraries(${PROJECT_NAME}
 add_executable(test_2 src/test_objects.cpp)
 target_link_libraries(test_2 ${PROJECT_NAME})
 
+add_executable(test_3 test/test_obb.cpp)
+target_link_libraries(test_3 ${PROJECT_NAME})
+
 add_subdirectory(external/pybind11)
 pybind11_add_module(online_traj_planner src/pybind.cpp)
 

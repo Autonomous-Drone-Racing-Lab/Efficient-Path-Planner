@@ -8,15 +8,27 @@
 OnlineTrajGenerator::OnlineTrajGenerator(const Eigen::Vector3d start, const Eigen::Vector3d goal, const Eigen::MatrixXd &nominalGatePositionAndType, const Eigen::MatrixXd &nominalObstaclePosition, const std::string &configPath)
     : configParser(std::make_shared<ConfigParser>(configPath)),
       pathPlanner(PathPlanner(nominalGatePositionAndType, nominalObstaclePosition, configParser)),
-      nominalGatePositionAndType(nominalGatePositionAndType)
+      nominalGatePositionAndType(nominalGatePositionAndType),
+      nominalObstaclePosition(nominalObstaclePosition)
 {
+
+    // write nominal gate positions and types to file
+    for(int i = 0; i < nominalGatePositionAndType.rows(); ++i){
+        pathWriter.updateGatePos(i, nominalGatePositionAndType.row(i));
+    }
+
+    // write obstacle pos to file
+    for(int i = 0; i<nominalObstaclePosition.rows(); i++){
+        pathWriter.updateObstaclePos(i, nominalObstaclePosition.row(i));
+    }
+
     // parse checkpoints
     checkpoints.push_back(start);
     for (int i = 0; i < nominalGatePositionAndType.rows(); i++)
     {
         const Eigen::VectorXd &gate = nominalGatePositionAndType.row(i);
         Eigen::Vector3d center, normal;
-        getGateCenterAndNormal(gate, false, center, normal);
+        getGateCenterAndNormal(gate, center, normal);
         const double checkpointOffset = configParser->getPathPlannerProperties().checkpointGateOffset;
         const Eigen::VectorXd earlyCheckpoint = center - checkpointOffset * normal;
         const Eigen::VectorXd lateCheckpoint = center + checkpointOffset * normal;
@@ -25,9 +37,10 @@ OnlineTrajGenerator::OnlineTrajGenerator(const Eigen::Vector3d start, const Eige
         checkpoints.push_back(lateCheckpoint);
     }
     checkpoints.push_back(goal);
+    pathWriter.writeCheckpoints(checkpoints);
 }
 
-bool OnlineTrajGenerator::getGateCenterAndNormal(const Eigen::VectorXd &gatePostAndType,  const bool subtractHeight, Eigen::Vector3d &center, Eigen::Vector3d &normal)
+bool OnlineTrajGenerator::getGateCenterAndNormal(const Eigen::VectorXd &gatePostAndType,  Eigen::Vector3d &center, Eigen::Vector3d &normal)
 {
     const Eigen::Vector3d &gatePosition = gatePostAndType.head(3);
     const Eigen::Vector3d &gateRotation = gatePostAndType.segment(3, 3);
@@ -40,16 +53,9 @@ bool OnlineTrajGenerator::getGateCenterAndNormal(const Eigen::VectorXd &gatePost
         return false;
     }
 
-    if (subtractHeight)
-    {
-        center = gatePosition;
-    }
-    else
-    {
-        const double gateHeight = configParser->getObjectPropertiesByTypeId(gateType).height;
-        center = gatePosition + Eigen::Vector3d(0, 0, gateHeight);
-    }
-
+    const double gateHeight = configParser->getObjectPropertiesByTypeId(gateType).height;
+    center = gatePosition + Eigen::Vector3d(0, 0, gateHeight);
+    
     normal << -sin(gateRotation(2)), cos(gateRotation(2)), 0;
     normal.normalize();
 
@@ -94,8 +100,10 @@ void OnlineTrajGenerator::preComputeTraj(const double takeoffTime)
     poly_traj::generateTrajectory(prunedPath, v_max, a_max, samplingInterval, takeoffTime, initialVel, initialAcc, plannedTraj);
 }
 
-bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd &newPose, const Eigen::Vector3d &dronePos, const bool nextGateWithinRange, const double flightTime)
-{   // when we are not in range we also dont have new information
+bool OnlineTrajGenerator::updateGatePos(const int gateId,  const Eigen::VectorXd& newPose, const Eigen::Vector3d &dronePos, const bool nextGateWithinRange, const double flightTime)
+{   
+    
+    // when we are not in range we also dont have new information
     if(!nextGateWithinRange){
         return false;
     }
@@ -104,24 +112,18 @@ bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd 
     {
         return false;
     }
+    //ignore if we canno construct path from where we are currently
+    if(!pathPlanner.worldPtr->checkPointValidity(dronePos, false))
+    {
+        return false;
+    }
     gatesObservedWithinRange.insert(gateId);
 
-    // no longer necessary, as we do proper check whether trajectory collides later
-    // const Eigen::Vector3d &newPos = newPose.head(3);
-    // const Eigen::Vector3d &oldPos = nominalGatePositionAndType.row(gateId).head(3);
-    // const Eigen::Vector3d &newRot = newPose.segment(3, 3);
-    // const Eigen::Vector3d &oldRot = nominalGatePositionAndType.row(gateId).segment(3, 3);
-
-    // const double posInsinificanceThreshold = configParser -> getPathPlannerProperties().posDivergenceRecalculate;
-    // const double rotInsinificanceThreshold = configParser -> getPathPlannerProperties().rotDivergenceRecalculate;
-
-    // const double deltaPos = (newPos.topRows(2) - oldPos.topRows(2)).norm();
-    // const double deltaRot = (newRot - oldRot).norm();
-
-    // if (deltaPos < posInsinificanceThreshold && deltaRot < rotInsinificanceThreshold)
-    // {
-    //     return false;
-    // }
+    // update nominal gate position
+    nominalGatePositionAndType.row(gateId).head(6) = newPose;
+    //pathPlanner.updateGatePos(gateId, nominalGatePositionAndType.row(gateId)); // if next gate within range, the view of the gate changes and we must subtract its height
+    pathPlanner.parseGatesAndObstacles(nominalGatePositionAndType,nominalObstaclePosition);
+    pathWriter.updateGatePos(gateId, nominalGatePositionAndType.row(gateId));
 
     // // find start idxr
     const int lastColIdx = plannedTraj.cols() - 1;
@@ -142,11 +144,10 @@ bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd 
 
     // check that next gate pos is reasonable well passed
     Eigen::Vector3d nextGatePos = newPose.head(3);
-    std::cout << "Next gate pos " << nextGatePos.transpose() << std::endl;
     const Eigen::VectorXd posDifferencesNextGate = (trajPos.rowwise() - nextGatePos.transpose()).rowwise().norm();
     const double minDistanceGate = posDifferencesNextGate.minCoeff();
     bool trajectoryPassingNextGate;
-    if(minDistanceGate > 0.1){
+    if(minDistanceGate > configParser->getPathPlannerProperties().minDistCheckTrajPassedGate){
         std::cout << "Current trajectory not passing next gate. Must be recomputed" << std::endl;
         trajectoryPassingNextGate = false;
     }else{
@@ -154,16 +155,16 @@ bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd 
         trajectoryPassingNextGate = true;
     }
     
-
-
-    bool trajectoryValid = pathPlanner.checkTrajectoryValidity(lookaheadTrajSegment, minDistance);
+    const double minDistanceCollision = configParser->getPathPlannerProperties().minDistCheckTrajCollision;
+    std::cout << "Min distance collision" << minDistanceCollision << std::endl;
+    bool trajectoryValid = pathPlanner.checkTrajectoryValidity(lookaheadTrajSegment, minDistanceCollision);
     if(trajectoryValid){
         std::cout << "Checked trajectory. It is not colliding, no need to recompute" << std::endl;
     }else{
         std::cout << "Checked trajectory. It is colliding, recomputing trajectory" << std::endl;
     }
 
-    if((trajectoryValid && trajectoryPassingNextGate)){
+    if(trajectoryValid && trajectoryPassingNextGate){
         return false;
     }
     
@@ -173,21 +174,19 @@ bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd 
     }
 
     trajectoryCurrentlyUpdating = true;
-    //std::thread(&OnlineTrajGenerator::recomputeTraj, this, gateId, newPose, dronePos, nextGateWithinRange, flightTime).detach();
-    recomputeTraj(gateId, newPose, dronePos, nextGateWithinRange, flightTime);
-
+    const bool recalculateOnline = configParser->getPathPlannerProperties().recalculateOnline;
+    if(recalculateOnline){
+        std::thread(&OnlineTrajGenerator::recomputeTraj, this, gateId, newPose, dronePos, flightTime).detach();
+    }
+    else{
+        recomputeTraj(gateId, newPose, dronePos, flightTime);
+    }
+   
     return true;
 }
 
-void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd& newPose, const Eigen::Vector3d& dronePos, const bool nextGateWithinRange, const double flightTime){
-    
-    // double lookaheadTime = 1;
-    // int lookaheadSteps = std::ceil(lookaheadTime / configParser->getTrajectoryGeneratorProperties().samplingInterval);
-    // if (plannedTraj.rows() == 0)
-    // {
-    //     throw std::runtime_error("No trajectory data available.");
-    // }
-    
+void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd& newPose, const Eigen::Vector3d& dronePos, const double flightTime){
+        
     // Generally relevant idxs
     const int segmentIdPre = gateId;
     const int segmentIdPost = gateId + 1;
@@ -195,20 +194,18 @@ void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd&
     const int checkpointIdPost = 2 * gateId + 2;
     const int checkpointIdNextGate = 2 * gateId + 3;
     
-    // update nominal gate position
-    nominalGatePositionAndType.row(gateId).head(6) = newPose;
-    pathPlanner.updateGatePos(gateId, nominalGatePositionAndType.row(gateId), nextGateWithinRange); // if next gate within range, the view of the gate changes and we must subtract its height
 
     // update checkpoints
     Eigen::Vector3d center, normal;
-    getGateCenterAndNormal(nominalGatePositionAndType.row(segmentIdPre), nextGateWithinRange, center, normal);
+    getGateCenterAndNormal(nominalGatePositionAndType.row(segmentIdPre), center, normal);
     double checkpointOffset = configParser->getPathPlannerProperties().checkpointGateOffset;
     const Eigen::VectorXd earlyCheckpoint = center - checkpointOffset * normal;
     const Eigen::VectorXd lateCheckpoint = center + checkpointOffset * normal;
     checkpoints[checkpointIdPre] = earlyCheckpoint;
     checkpoints[checkpointIdPost] = lateCheckpoint;
+    pathWriter.writeCheckpoints(checkpoints);
 
-    // advance trajectory by delta t. Approximately accounting for time it taikes us to recomputeTraj
+    // advance trajectory by delta t. Approximately accounting for time it takes us to recomputeTraj
     const double advanceTime = configParser->getPathPlannerProperties().timeLimitOnline + 0.05; // 50 ms added for general computation overhead
     const double advancedTime = flightTime + advanceTime;
     int startIdxAdvanced;
@@ -227,6 +224,13 @@ void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd&
     const Eigen::Vector3d dronePosAdvanced = Eigen::Vector3d(advancedStartState(0), advancedStartState(3), advancedStartState(6));
     const Eigen::Vector3d droneVelAdvanced = Eigen::Vector3d(advancedStartState(1), advancedStartState(4), advancedStartState(7));
     const Eigen::Vector3d droneAccAdvanced = Eigen::Vector3d(advancedStartState(2), advancedStartState(5), advancedStartState(8));
+
+    const bool advancedStartStateValid = pathPlanner.worldPtr->checkPointValidity(dronePosAdvanced, configParser->getPathPlannerProperties().canPassGate);
+    if(!advancedStartStateValid){
+        std::cerr << "Advanced trajectory does not end at valid position. No recomputation and hope for best" << std::endl;
+        trajectoryCurrentlyUpdating = false;
+        return;
+    }
 
 
     // Utilize two threads
@@ -250,7 +254,7 @@ void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd&
 
     // second segment gate to next gate
     std::thread postThread([&]() {
-        std::vector<Eigen::Vector3d> postSegmentPath;
+        std::vector<Eigen::Vector3d> postSegmentPath;       
         bool postSegmentResult = pathPlanner.planPath(checkpoints[checkpointIdPost], checkpoints[checkpointIdNextGate], configParser->getPathPlannerProperties().timeLimitOnline, postSegmentPath);
         postSegmentPromise.set_value(postSegmentPath);
         postSegmentResultPromise.set_value(postSegmentResult);
