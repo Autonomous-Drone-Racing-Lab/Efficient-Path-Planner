@@ -12,13 +12,17 @@
 namespace ob = ompl::base;
 void World::addGatePrivateOperation(const int gateId, const Eigen::VectorXd &coordinates, const bool isUpdate)
 {   
-    std::cout << "Add gate private operation" << std::endl;
+
     Eigen::Vector3d pos = coordinates.head(3);
+    pos(2) = 0.0;
+    std::cout << "Adding gate at " << pos.transpose() << std::endl;
+    std::cout << "Coordinates " << coordinates.transpose() << std::endl;
     Eigen::Vector3d rot = coordinates.segment(3, 3);
+    std::cout << "Rotation " << rot.transpose() << std::endl;
     int type = coordinates(6);
     const std::vector<OBBDescription> &obbDescriptions = configParser->getGateGeometryByTypeId(type);
     const ObjectProperties &objectProperties = configParser->getObjectPropertiesByTypeId(type);
-    pos(2) = 0.0;
+    
     // create object
     Object obj = Object::createFromDescription(pos, rot, obbDescriptions);
     // on update remove old OBBs
@@ -37,7 +41,6 @@ void World::addGatePrivateOperation(const int gateId, const Eigen::VectorXd &coo
 
 void World::addGate(int gateId, const Eigen::VectorXd &coordinates)
 {   
-    std::cout  << "Adding gate " << gateId << std::endl;
     addGatePrivateOperation(gateId, coordinates, false);
 }
 

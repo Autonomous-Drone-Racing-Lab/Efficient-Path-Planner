@@ -44,8 +44,8 @@ PathPlanner::PathPlanner(const Eigen::MatrixXd &nominalGatePositionAndType, cons
     // SI cannot pass gates (normal state space)
     const bool canPassGates = configParser->getPathPlannerProperties().canPassGate; 
     si = ob::SpaceInformationPtr(new ob::SpaceInformation(space));
-    si->setStateValidityChecker(std::make_shared<StateValidator>(si, worldPtr, false));
-    si->setMotionValidator(std::make_shared<MotionValidator>(si, worldPtr, false));
+    si->setStateValidityChecker(std::make_shared<StateValidator>(si, worldPtr, canPassGates));
+    si->setMotionValidator(std::make_shared<MotionValidator>(si, worldPtr, canPassGates));
     si->setup();
 
     // si2 can pass gates
@@ -150,7 +150,6 @@ ompl::base::OptimizationObjectivePtr PathPlanner::getStraightLineObjective(const
 
 void PathPlanner::updateGatePos(const int gateId, const Eigen::Vector3d &newPose)
 {
-    std::cout << "Updating gate " << gateId << " to " << newPose.transpose() << std::endl;
     worldPtr->updateGatePosition(gateId, newPose);
 }
 

@@ -121,10 +121,9 @@ bool OnlineTrajGenerator::updateGatePos(const int gateId,  const Eigen::VectorXd
 
     // update nominal gate position
     nominalGatePositionAndType.row(gateId).head(6) = newPose;
-    //pathPlanner.updateGatePos(gateId, nominalGatePositionAndType.row(gateId), nextGateWithinRange); // if next gate within range, the view of the gate changes and we must subtract its height
+    //pathPlanner.updateGatePos(gateId, nominalGatePositionAndType.row(gateId)); // if next gate within range, the view of the gate changes and we must subtract its height
     pathPlanner.parseGatesAndObstacles(nominalGatePositionAndType,nominalObstaclePosition);
     pathWriter.updateGatePos(gateId, nominalGatePositionAndType.row(gateId));
-    pathPlanner.worldPtr->printObbs();
 
     // // find start idxr
     const int lastColIdx = plannedTraj.cols() - 1;
