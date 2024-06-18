@@ -6,6 +6,7 @@
 #include "Types.h"
 #include <string>
 #include <vector>
+#include <iostream>
 
 
 class Object
@@ -19,6 +20,14 @@ public:
     void rotateZ(const double angle, const bool useRadian = true);
 
     std::vector<box> getAABBs(const double inflateSize) const;
+    void printObbs() {
+        int i = 0;
+        for (auto obb : obbs)
+        {
+            std::cout << "OBB " << i++ << std::endl;
+            std::cout << "Center: " << obb.center.transpose() << std::endl;
+        }
+    }
 
     std::vector<OBB> obbs;
     Eigen::Vector3d globalCenter;

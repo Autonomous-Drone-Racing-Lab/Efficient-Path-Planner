@@ -29,19 +29,7 @@ PathPlanner::PathPlanner(const Eigen::MatrixXd &nominalGatePositionAndType, cons
     worldPtr = std::make_shared<World>(configParser);
 
         // parse nomial gates
-    for (int i = 0; i < nominalGatePositionAndType.rows(); i++)
-    {
-        std::cout << "Adding gate " << i << std::endl;
-        Eigen::VectorXd gate = nominalGatePositionAndType.row(i);
-        worldPtr->addGate(i, gate);
-    }
-
-    // parse nominal obstacles
-    for (int i = 0; i < nominalObstaclePosition.rows(); i++)
-    {
-        Eigen::VectorXd obstacle = nominalObstaclePosition.row(i);
-        worldPtr->addObstacle(i, obstacle);
-    }
+    parseGatesAndObstacles(nominalGatePositionAndType, nominalObstaclePosition);
 
     // Todo, potential memory leak
     space = ob::StateSpacePtr(new ob::RealVectorStateSpace(3));
@@ -65,6 +53,27 @@ PathPlanner::PathPlanner(const Eigen::MatrixXd &nominalGatePositionAndType, cons
     // si2->setStateValidityChecker(std::make_shared<StateValidator>(si2, worldPtr, true));
     // si2->setMotionValidator(std::make_shared<MotionValidator>(si2, worldPtr, true));
     // si2->setup();
+}
+
+void PathPlanner::parseGatesAndObstacles(const Eigen::MatrixXd &nominalGatePositionAndType, const Eigen::MatrixXd &nominalObstaclePosition)
+{
+    
+    worldPtr->resetWorld();
+    // parse nomial gates
+    for (int i = 0; i < nominalGatePositionAndType.rows(); i++)
+    {
+        std::cout << "Adding gate " << i << std::endl;
+        Eigen::VectorXd gate = nominalGatePositionAndType.row(i);
+        gate(2) = 0.0; // put all gate to cround
+        worldPtr->addGate(i, gate);
+    }
+
+    // parse nominal obstacles
+    for (int i = 0; i < nominalObstaclePosition.rows(); i++)
+    {
+        Eigen::VectorXd obstacle = nominalObstaclePosition.row(i);
+        worldPtr->addObstacle(i, obstacle);
+    }
 }
 
 bool PathPlanner::planPath(const Eigen::Vector3d &start, const Eigen::Vector3d &goal, const double timeLimit, std::vector<Eigen::Vector3d> &resultPath) const
@@ -139,9 +148,10 @@ ompl::base::OptimizationObjectivePtr PathPlanner::getStraightLineObjective(const
     return obj;
 }
 
-void PathPlanner::updateGatePos(const int gateId, const Eigen::Vector3d &newPose, const bool subtractHeight)
+void PathPlanner::updateGatePos(const int gateId, const Eigen::Vector3d &newPose)
 {
-    worldPtr->updateGatePosition(gateId, newPose, subtractHeight);
+    std::cout << "Updating gate " << gateId << " to " << newPose.transpose() << std::endl;
+    worldPtr->updateGatePosition(gateId, newPose);
 }
 
 std::vector<Eigen::Vector3d> PathPlanner::includeGates2(std::vector<std::vector<Eigen::Vector3d>> waypoints) const

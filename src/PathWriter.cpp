@@ -87,3 +87,26 @@ void PathWriter::updateObstaclePos(const int obstacleId, const Eigen::VectorXd& 
 
     file << "id: " << obstacleId << " info: " << pose.transpose() << std::endl;
 }
+
+void PathWriter::writeCheckpoints(const std::vector<Eigen::Vector3d>& checkpoints){
+    const std::string fileName = "checkpoints.txt";
+    const std::string filePath = folderPath + "/" + fileName;
+
+    std::ofstream file(filePath);
+    if (!file.is_open())
+    {
+        std::cerr << "Failed to open file for writing: " << fileName << std::endl;
+        return;
+    }
+
+    for (const auto &checkpoint : checkpoints)
+    {
+        for (int k = 0; k < 3; k++)
+        {
+            file << checkpoint(k) << " ";
+        }
+        file << std::endl;
+    }
+
+    file.close();
+}
