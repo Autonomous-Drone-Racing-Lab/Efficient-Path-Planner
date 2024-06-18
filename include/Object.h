@@ -12,7 +12,7 @@
 class Object
 {
 public:
-    Object(const Eigen::Vector3d &globalCenter, const Eigen::Matrix3d &globalRotation, const std::vector<OBB> &obbs);
+    Object(const Eigen::Vector3d &center, const double rot_z, const std::vector<OBB> &obbs);
 
     static Object createFromDescription(const Eigen::Vector3d &globalCenter, const Eigen::Vector3d &globalRotation, const std::vector<OBBDescription> &obbDescriptions);
 

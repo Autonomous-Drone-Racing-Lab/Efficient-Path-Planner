@@ -30,7 +30,6 @@ bool OBB::checkCollisionWithRay(const Eigen::Vector3d& start, const Eigen::Vecto
 
     for(int i = 0; i < 3; i++){
         if(abs(localDirection(i)) < 1e-6){
-            std::cout << "Ray is parallel to the plane" << std::endl;
             // Rays is parallel to the plane. No hit if the ray is outside the box
             if(localStart(i) < box_min(i) || localStart(i) > box_max(i)){
                 return false;

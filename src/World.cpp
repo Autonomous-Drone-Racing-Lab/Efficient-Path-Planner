@@ -98,15 +98,6 @@ bool World::checkPointValidity(const Eigen::Vector3d &point,  const bool canPass
 
         if (obb.checkCollisionWithPoint(point, inflateSize))
         {   
-            std::cout << "Collision with " << v.second << std::endl;
-            std::cout << "Inflate Size: " << inflateSize << std::endl;
-            std::cout << "Point: " << point.transpose() << std::endl;
-            std::cout << "Center: " << obb.center.transpose() << std::endl;
-            const Eigen::Vector3d localPoint = obb.rotation.transpose() * (point - obb.center);
-            std::cout << "Local point: " << localPoint.transpose() << std::endl;
-            std::cout << "Abs sizes" << std::abs(localPoint.x()) << " " << std::abs(localPoint.y()) << " " << std::abs(localPoint.z()) << std::endl;
-            const bool isColliding = (std::abs(localPoint.x())<=inflateSize) && (std::abs(localPoint.y())<=inflateSize) && (std::abs(localPoint.z())<=inflateSize);
-            std::cout << "Is colliding: " << isColliding << std::endl;
             return false;
         }
     }

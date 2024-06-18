@@ -7,15 +7,12 @@
 #include <vector>
 #include <iostream>
 
-Object::Object(const Eigen::Vector3d& globalCenter, const Eigen::Matrix3d& globalRotation, const std::vector<OBB>& obbs) :globalCenter(globalCenter), globalRotation(globalRotation){
-    // tranform all obbs to global coordinates considereing global center and rotation
-    for (OBB obb : obbs)
-    {
-        Eigen::Vector3d relativeCenter = obb.center - globalCenter;
-        obb.center = globalRotation * relativeCenter + globalCenter;
-        obb.rotation = globalRotation * obb.rotation;
-        this->obbs.push_back(obb);
-    }
+Object::Object(const Eigen::Vector3d& center, const double rot_z, const std::vector<OBB>& obbs): obbs(obbs){
+    this->globalCenter = Eigen::Vector3d(0,0,0);
+    this->globalRotation = Eigen::Matrix3d::Identity();
+    
+    this->translate(center);
+    this->rotateZ(rot_z, true);
 }
 
 Object Object::createFromDescription(const Eigen::Vector3d& globalCenter, const Eigen::Vector3d& globalRotation,  const std::vector<OBBDescription> &obbDescriptions)
@@ -39,18 +36,9 @@ Object Object::createFromDescription(const Eigen::Vector3d& globalCenter, const 
         exit(1);
     }
 
-
-    // create rotation matrix from angles in global rotation (angles in radians)
-    const double r1 = cos(rot_phi);
-    const double r2 = sin(rot_phi);
-    Eigen::Matrix3d rotation;
-    rotation << r1, -r2, 0,
-        r2, r1, 0,
-        0, 0, 1;
-
     
 
-    return Object(globalCenter, rotation, obbs);
+    return Object(globalCenter, rot_phi, obbs);
 }
 
 void Object::translate(const Eigen::Vector3d& translation)
