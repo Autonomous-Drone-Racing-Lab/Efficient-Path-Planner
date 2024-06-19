@@ -421,6 +421,7 @@ double Trajectory::getVelocityMaxPathVelocity(double pathPos) const {
 	return maxPathVelocity;
 }
 
+
 double Trajectory::getAccelerationMaxPathVelocityDeriv(double pathPos) {
 	return (getAccelerationMaxPathVelocity(pathPos + eps) - getAccelerationMaxPathVelocity(pathPos - eps)) / (2.0 * eps);
 }
@@ -494,3 +495,19 @@ VectorXd Trajectory::getVelocity(double time) const {
 	
 	return path.getTangent(pathPos) * pathVel;
 }
+
+VectorXd Trajectory::getAcceleration(double time) const{
+	list<TrajectoryStep>::const_iterator it = getTrajectorySegment(time);
+	list<TrajectoryStep>::const_iterator previous = it;
+	previous--;
+		
+	double timeStep = it->time - previous->time;
+	const double acceleration = 2.0 * (it->pathPos - previous->pathPos - timeStep * previous->pathVel) / (timeStep * timeStep);
+
+	timeStep = time - previous->time;
+	const double pathPos = previous->pathPos + timeStep * previous->pathVel + 0.5 * timeStep * timeStep * acceleration; 
+	const double pathVel = previous->pathVel + timeStep * acceleration;
+
+	return path.getCurvature(pathPos) * pathVel * pathVel;
+}
+	

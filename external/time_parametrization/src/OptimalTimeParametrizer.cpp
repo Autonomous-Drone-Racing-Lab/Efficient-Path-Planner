@@ -52,17 +52,18 @@ namespace OptimalTimeParametrizer{
             }
             const Eigen::Vector3d pos = traj.getPosition(t);
             const Eigen::Vector3d vel = traj.getVelocity(t);
+            const Eigen::Vector3d acc = traj.getAcceleration(t);
             //std::cout << "Pos " << pos.transpose() << std::endl;
 
             result(i, 0) = pos(0);
             result(i, 1) = vel(0);
-            result(i, 2) = 0;
+            result(i, 2) = acc(0);
             result(i, 3) = pos(1);
             result(i, 4) = vel(1);
-            result(i, 5) = 0;
+            result(i, 5) = acc(1);
             result(i, 6) = pos(2);
             result(i, 7) = vel(2);
-            result(i, 8) = 0;
+            result(i, 8) = acc(2);
             result(i, 9) = (i*samplingInterval) + startTimeOffset;
         }
         return result;

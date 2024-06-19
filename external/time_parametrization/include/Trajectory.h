@@ -59,6 +59,7 @@ public:
 	// Return the position/configuration or velocity vector of the robot for a given point in time within the trajectory.
 	Eigen::VectorXd getPosition(double time) const;
 	Eigen::VectorXd getVelocity(double time) const;
+	Eigen::VectorXd getAcceleration(double time) const;
 
 	// Outputs the phase trajectory and the velocity limit curve in 2 files for debugging purposes.
 	void outputPhasePlaneTrajectory() const;
