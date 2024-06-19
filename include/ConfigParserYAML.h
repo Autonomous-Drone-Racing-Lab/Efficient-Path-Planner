@@ -1,12 +1,11 @@
 #pragma once
 
-#include "json.h"
+#include <yaml-cpp/yaml.h>
 #include "Types.h"
 #include <vector>
 #include <map>
 #include <string>
 
-using json = nlohmann::json;
 class ConfigParser
 {
 public:
@@ -21,7 +20,7 @@ public:
     const TrajectoryGeneratorProperties &getTrajectoryGeneratorProperties() const;
 
 private:
-    json config;
+    YAML::Node config;
     std::map<std::string, std::vector<OBBDescription>> objects;
     std::map<std::string, ObjectProperties> objectProperties;
     WorldProperties worldProperties;
@@ -29,9 +28,9 @@ private:
     TrajectoryGeneratorProperties trajectoryGeneratorProperties;
 
     // parsers
-    void parseGeometries(json &config);
-    void parseObjectProperties(json &config);
-    void parseWorldProperties(json &config);
-    void parsePathPlannerProperties(json &config);
-    void parseTrajectoryGeneratorProperties(json &config);
+    void parseGeometries(const YAML::Node& config);
+    void parseObjectProperties(const YAML::Node& config);
+    void parseWorldProperties(const YAML::Node& config);
+    void parsePathPlannerProperties(const YAML::Node& config);
+    void parseTrajectoryGeneratorProperties(const YAML::Node& config);
 };

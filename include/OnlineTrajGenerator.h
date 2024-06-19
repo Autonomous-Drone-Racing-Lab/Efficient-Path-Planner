@@ -1,7 +1,7 @@
 #pragma once
 
 #include "PathPlanner.h"
-#include "ConfigParser.h"
+#include "ConfigParserYAML.h"
 #include "Types.h"
 #include <Eigen/Dense>
 #include <memory>

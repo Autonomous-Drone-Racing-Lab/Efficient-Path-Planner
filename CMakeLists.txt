@@ -18,7 +18,6 @@ add_subdirectory(external/time_parametrization)
 
 # Create a library from the source files in the src/ directory
 add_library(${PROJECT_NAME} STATIC
-    src/ConfigParser.cpp
     src/PathPlanner.cpp
     src/OBB.cpp
     src/Object.cpp
@@ -28,6 +27,7 @@ add_library(${PROJECT_NAME} STATIC
     src/OnlineTrajGenerator.cpp
     src/PathWriter.cpp
     src/TrajInterpolation.cpp
+    src/ConfigParserYAML.cpp
 )
 set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 

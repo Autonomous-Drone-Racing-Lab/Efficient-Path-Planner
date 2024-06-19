@@ -1,7 +1,7 @@
 #pragma once
 
 #include "World.h"
-#include "ConfigParser.h"
+#include "ConfigParserYAML.h"
 #include <Eigen/Dense>
 #include "Types.h"
 #include <ompl-1.6/ompl/base/StateSpace.h>
