@@ -41,6 +41,7 @@ private:
     TrajInterpolation trajInterpolator;
 
    
-    bool getGateCenterAndNormal(const Eigen::VectorXd &gatePostAndType, Eigen::Vector3d &center, Eigen::Vector3d &normal);
+    bool getGateCenterAndNormal(const Eigen::VectorXd &gatePostAndType, Eigen::Vector3d &center, Eigen::Vector3d &normal) const;
+    bool checkGatePassed(const Eigen::Vector3d& pos1, const Eigen::Vector3d& pos2, const int gateId) const;
    // void storePathSegmentsToFile(const std::string &path, const int startSegment);
 };

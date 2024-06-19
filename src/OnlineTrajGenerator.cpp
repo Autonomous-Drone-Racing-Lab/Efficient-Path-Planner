@@ -43,7 +43,7 @@ OnlineTrajGenerator::OnlineTrajGenerator(const Eigen::Vector3d start, const Eige
     pathWriter.writeCheckpoints(checkpoints);
 }
 
-bool OnlineTrajGenerator::getGateCenterAndNormal(const Eigen::VectorXd &gatePostAndType, Eigen::Vector3d &center, Eigen::Vector3d &normal)
+bool OnlineTrajGenerator::getGateCenterAndNormal(const Eigen::VectorXd &gatePostAndType, Eigen::Vector3d &center, Eigen::Vector3d &normal) const
 {
     const Eigen::Vector3d &gatePosition = gatePostAndType.head(3);
     const Eigen::Vector3d &gateRotation = gatePostAndType.segment(3, 3);
@@ -107,8 +107,8 @@ void OnlineTrajGenerator::preComputeTraj(const double takeoffTime)
     {
         const double v_max = configParser->getTrajectoryGeneratorProperties().maxVelocity;
         const double a_max = configParser->getTrajectoryGeneratorProperties().maxAcceleration;
-        const Eigen::Vector3d zeros(0, 0, 0);
-        traj = OptimalTimeParametrizer::calculateTrajectory(prunedPath, {}, v_max, a_max, takeoffTime, samplingInterval, 0.001);
+        const double maxTrajDivergence = configParser->getTrajectoryGeneratorProperties().maxTrajDivergence;
+        traj = OptimalTimeParametrizer::calculateTrajectory(prunedPath, {}, v_max, a_max, takeoffTime, samplingInterval, maxTrajDivergence);
     }
     else
     {
@@ -161,32 +161,41 @@ bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd 
     const double minDistance = posDifferences.minCoeff(&endIdx);
     const Eigen::MatrixXd &lookaheadTrajSegment = plannedTraj.block(startIdx, 0, endIdx - startIdx, plannedTraj.cols());
 
-    // check that next gate pos is reasonable well passed
-    Eigen::Vector3d nextGatePos = newPose.head(3);
-    const Eigen::VectorXd posDifferencesNextGate = (trajPos.rowwise() - nextGatePos.transpose()).rowwise().norm();
-    const double minDistanceGate = posDifferencesNextGate.minCoeff();
-    bool trajectoryPassingNextGate;
-    if (minDistanceGate > configParser->getPathPlannerProperties().minDistCheckTrajPassedGate)
+    // check that next gate is passed
+    bool trajectoryPassingNextGate = false;
+    bool trajectoryValid = false;
+    for (int i = 0; i < lookaheadTrajSegment.rows() - 1; ++i)
     {
-        std::cout << "Current trajectory not passing next gate. Must be recomputed" << std::endl;
-        trajectoryPassingNextGate = false;
+        const Eigen::VectorXd &state1 = lookaheadTrajSegment.row(i);
+        const Eigen::VectorXd &state2 = lookaheadTrajSegment.row(i + 1);
+        const Eigen::Vector3d pos1(state1(0), state1(3), state1(6));
+        const Eigen::Vector3d pos2(state2(0), state2(3), state2(6));
+        if (checkGatePassed(pos1, pos2, gateId))
+        {
+            trajectoryPassingNextGate = true;
+            break;
+        }
+    }
+
+    if (!trajectoryPassingNextGate)
+    {
+        std::cout << "Current trajectory not passing next gate. Must be recomputed. No check for collision requried" << std::endl;
     }
     else
     {
         std::cout << "Current trajectory is passing next gate" << std::endl;
-        trajectoryPassingNextGate = true;
-    }
-
-    const double minDistanceCollision = configParser->getPathPlannerProperties().minDistCheckTrajCollision;
-    std::cout << "Min distance collision" << minDistanceCollision << std::endl;
-    bool trajectoryValid = pathPlanner.checkTrajectoryValidity(lookaheadTrajSegment, minDistanceCollision);
-    if (trajectoryValid)
-    {
-        std::cout << "Checked trajectory. It is not colliding, no need to recompute" << std::endl;
-    }
-    else
-    {
-        std::cout << "Checked trajectory. It is colliding, recomputing trajectory" << std::endl;
+        
+        // insert here for computational efficiency
+        const double minDistanceCollision = configParser->getPathPlannerProperties().minDistCheckTrajCollision;
+        trajectoryValid = pathPlanner.checkTrajectoryValidity(lookaheadTrajSegment, minDistanceCollision);
+        if (trajectoryValid)
+        {
+            std::cout << "Checked trajectory. It is not colliding, no need to recompute" << std::endl;
+        }
+        else
+        {
+            std::cout << "Checked trajectory. It is colliding, recomputing trajectory" << std::endl;
+        }
     }
 
     if (trajectoryValid && trajectoryPassingNextGate)
@@ -214,6 +223,36 @@ bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd 
     return true;
 }
 
+bool OnlineTrajGenerator::checkGatePassed(const Eigen::Vector3d &pos1, const Eigen::Vector3d &pos2, const int gateId) const
+{
+    const Eigen::VectorXd &gate = nominalGatePositionAndType.row(gateId);
+    Eigen::Vector3d center, normal;
+    getGateCenterAndNormal(gate, center, normal);
+
+    double cosGoal = cos(gate(5));
+    double sinGoal = sin(gate(5));
+
+
+    const Eigen::Vector3d pos1Tran = pos1 - center;
+    Eigen::Vector3d pos1Gate;
+    pos1Gate << cosGoal * pos1Tran(0) - sinGoal * pos1Tran(1), sinGoal * pos1Tran(0) + cosGoal * pos1Tran(1), pos1Tran(2);
+
+    const Eigen::Vector3d pos2Trans = pos2 - center;
+    Eigen::Vector3d pos2Gate;
+    pos2Gate << cosGoal * pos2Trans(0) - sinGoal * pos2Trans(1), sinGoal * pos2Trans(0) + cosGoal * pos2Trans(1), pos2Trans(2);
+
+    if (pos1Gate(1) < 0 && pos2Gate(1) > 0)
+    {
+        // check that we are within gate
+        const Eigen::Vector3d center = (pos1Gate + pos2Gate) / 2;
+        const double edgeLength = 0.425;
+        if(std::abs(center(0)) <= edgeLength and std::abs(center(2)) <= edgeLength){
+            return true;
+        }
+    }
+    return false;
+}
+
 void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd &newPose, const Eigen::Vector3d &dronePos, const double flightTime)
 {
 
@@ -237,7 +276,8 @@ void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd 
     // advance trajectory by delta t. Approximately accounting for time it takes us to recomputeTraj
     const double advanceTime = configParser->getPathPlannerProperties().timeLimitOnline + 0.05; // 50 ms added for general computation overhead
     double advancedTime = flightTime;
-    if(configParser->getPathPlannerProperties().advanceForCalculation){
+    if (configParser->getPathPlannerProperties().advanceForCalculation)
+    {
         advancedTime += advanceTime;
     }
     int startIdxAdvanced;
@@ -345,21 +385,23 @@ void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd 
     {
         const double v_max = configParser->getTrajectoryGeneratorProperties().maxVelocity;
         const double a_max = configParser->getTrajectoryGeneratorProperties().maxAcceleration;
-        
+
         // necessary as we cannot set previous velocity
         // what we do instead resimulate previous few seconds and hope that state at
         // transition time should be similar
-        double prevSampleTime = 3;
+        double prevSampleTime = configParser->getTrajectoryGeneratorProperties().prependTrajTime;
         double prevSamleDt = 0.1;
         const double startTime = std::max(0.0, advancedTime - prevSampleTime);
         std::vector<Eigen::Vector3d> prevTrajSampled;
-        for(double t = startTime; t < advancedTime; t += prevSamleDt){
+        for (double t = startTime; t < advancedTime; t += prevSamleDt)
+        {
             Eigen::VectorXd trajEl = sampleTraj(t);
             Eigen::Vector3d pos(trajEl(0), trajEl(3), trajEl(6));
             prevTrajSampled.push_back(pos);
         }
 
-        trajPartPost = OptimalTimeParametrizer::calculateTrajectory(filledWaypoints, prevTrajSampled, v_max, a_max, advancedTime, samplingInterval, 0.001);
+        const double maxTrajDivergence = configParser->getTrajectoryGeneratorProperties().maxTrajDivergence;
+        trajPartPost = OptimalTimeParametrizer::calculateTrajectory(filledWaypoints, prevTrajSampled, v_max, a_max, advancedTime, samplingInterval, maxTrajDivergence);
     }
     else
     {

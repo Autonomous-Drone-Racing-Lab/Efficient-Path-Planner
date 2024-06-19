@@ -44,14 +44,12 @@ struct PathPlannerProperties
     double timeLimitOffline;
     double checkpointGateOffset;
     double range;
-    double posDivergenceRecalculate;
-    double rotDivergenceRecalculate;
     double minDistCheckTrajCollision;
-    double minDistCheckTrajPassedGate;
     std::string pathSimplification;
     bool recalculateOnline;
     bool advanceForCalculation;
     bool canPassGate;
+    
 };
 
 struct TrajectoryGeneratorProperties{
@@ -60,4 +58,7 @@ struct TrajectoryGeneratorProperties{
     double samplingInterval;
     std::string type;
     double maxTime;
+
+    double maxTrajDivergence;
+    double prependTrajTime;
 };
