@@ -7,7 +7,7 @@ To use this code, relevant other packages must be installed before. Below you wi
 Two external dependencies must be added to this codebase in the form of Git Submodules. Pybind11 for creating the pyhon bindings as well as a custom poly_traj package for generting minimum snap trajectories. Download both packages using
 ```
 git submodule init
-git submodule update
+git submodule update --remote
 ```
 
 If you have not cloned this repo yet, you can also download all submodules during the clone via
@@ -37,6 +37,9 @@ cmake --build build --target install
 sudo apt-get install libyaml-cpp-dev
 ```
 
+**Install OMPL**
+Follow the tutorial on the ompl website
+
 ### Build Code
 To generate the python binding simply run
 ```
@@ -44,11 +47,16 @@ pip install .
 ```
 from the root of the directory. This makes the package available via the name `polynomial_trajectory` in python, i.e. `import polynomial_trajectory`
 
-As build errors are obfuscated in this command for debugging purposes it is recommended to do a normal C-Make build
+To setup the build system, before the first `pip install .` you must do
 ```
 mkdir build
 cd build
 cmake ..
+```
+
+As build errors are obfuscated in the `pip install .` command for debugging purposes it is recommended to do a normal C-Make build for debugging
+```
+cd build
 make
 ```
 

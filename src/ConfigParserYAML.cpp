@@ -9,7 +9,7 @@
 
 ConfigParser::ConfigParser(const std::string& configPath)
 {
-    YAML::Node config = YAML::LoadFile(configPath);
+    this->config = YAML::LoadFile(configPath);
 
     parseGeometries(config);
     std::cout << "Parsing geometries done" << std::endl;
@@ -24,15 +24,14 @@ ConfigParser::ConfigParser(const std::string& configPath)
 }
 
 const std::vector<OBBDescription>& ConfigParser::getGateGeometryByTypeId(const int typeId) const
-{
-    std::cout << "Here 1" << std::endl;
+{   
+
     std::string key = config["gate_id_to_name_mapping"][std::to_string(typeId)].as<std::string>();
     return objects.at(key);
 }
 
 const ObjectProperties& ConfigParser::getObjectPropertiesByTypeId(const int typeId) const
 {   
-    std::cout << "Here 2" << std::endl;
     std::string key = config["gate_id_to_name_mapping"][std::to_string(typeId)].as<std::string>();
     return objectProperties.at(key);
 }
@@ -106,13 +105,12 @@ void ConfigParser::parsePathPlannerProperties(const YAML::Node& config)
     pathPlannerProperties.range = config["path_planner_properties"]["range"].as<double>();
     pathPlannerProperties.posDivergenceRecalculate = config["path_planner_properties"]["pos_divergence_recalculate"].as<double>();
     pathPlannerProperties.rotDivergenceRecalculate = config["path_planner_properties"]["rot_divergence_recalculate"].as<double>();
-    std::cout << "Mid" << std::endl;
     pathPlannerProperties.minDistCheckTrajCollision = config["path_planner_properties"]["min_dist_check_traj_collision"].as<double>();
     pathPlannerProperties.minDistCheckTrajPassedGate = config["path_planner_properties"]["min_dist_check_traj_passed_gate"].as<double>();
     pathPlannerProperties.pathSimplification = config["path_planner_properties"]["path_simplification"].as<std::string>();
     pathPlannerProperties.recalculateOnline = config["path_planner_properties"]["recalculate_online"].as<bool>();
     pathPlannerProperties.canPassGate = config["path_planner_properties"]["can_pass_gate"].as<bool>();
-    pathPlannerProperties.advanceForCalculation = config["path_planner_properties"]["advance_for_calculation"].as<double>();
+    pathPlannerProperties.advanceForCalculation = config["path_planner_properties"]["advance_for_calculation"].as<bool>();
 }
 
 void ConfigParser::parseTrajectoryGeneratorProperties(const YAML::Node& config)
