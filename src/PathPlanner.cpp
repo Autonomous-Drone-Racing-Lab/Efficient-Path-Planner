@@ -7,7 +7,7 @@
 #include <ompl/base/spaces/RealVectorBounds.h>
 #include <ompl/base/OptimizationObjective.h>
 #include "World.h"
-#include "ConfigParser.h"
+#include "ConfigParserYAML.h"
 #include <Eigen/Dense>
 #include "Types.h"
 #include <memory>

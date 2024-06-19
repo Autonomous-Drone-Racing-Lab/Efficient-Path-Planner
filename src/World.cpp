@@ -2,7 +2,7 @@
 #include <Eigen/Dense>
 #include "OBB.h"
 #include "Object.h"
-#include "ConfigParser.h"
+#include "ConfigParserYAML.h"
 #include "Types.h"
 #include <ompl-1.6/ompl/base/StateValidityChecker.h>
 #include <ompl-1.6/ompl/base/SpaceInformation.h>

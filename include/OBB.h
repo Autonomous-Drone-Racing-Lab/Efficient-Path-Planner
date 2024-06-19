@@ -2,7 +2,7 @@
 
 #include <Eigen/Dense>
 #include "Types.h"
-#include "ConfigParser.h"
+#include "ConfigParserYAML.h"
 #include <string>
 
 

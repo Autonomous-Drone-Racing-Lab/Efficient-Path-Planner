@@ -1,7 +1,7 @@
 #include "OBB.h"
 #include <Eigen/Dense>
 #include "Types.h"
-#include "ConfigParser.h"
+#include "ConfigParserYAML.h"
 #include "Object.h"
 
 #include <iostream>
