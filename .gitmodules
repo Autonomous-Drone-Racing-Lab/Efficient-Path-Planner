@@ -1,6 +1,7 @@
 [submodule "external/poly_traj"]
 	path = external/poly_traj
 	url = https://github.com/Autonomous-Drone-Racing-Lab/Polynomial-Trajectory-Generation.git
+	branch = master
 [submodule "external/pybind11"]
 	path = external/pybind11
 	url = https://github.com/pybind/pybind11.git
