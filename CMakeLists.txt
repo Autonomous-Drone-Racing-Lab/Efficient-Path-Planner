@@ -18,7 +18,6 @@ add_subdirectory(external/time_parametrization)
 
 # Create a library from the source files in the src/ directory
 add_library(${PROJECT_NAME} STATIC
-    #src/ConfigParser.cpp
     src/PathPlanner.cpp
     src/OBB.cpp
     src/Object.cpp
