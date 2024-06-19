@@ -103,10 +103,7 @@ void ConfigParser::parsePathPlannerProperties(const YAML::Node& config)
     pathPlannerProperties.timeLimitOffline = config["path_planner_properties"]["time_limit_offline"].as<double>();
     pathPlannerProperties.checkpointGateOffset = config["path_planner_properties"]["checkpoint_gate_offset"].as<double>();
     pathPlannerProperties.range = config["path_planner_properties"]["range"].as<double>();
-    pathPlannerProperties.posDivergenceRecalculate = config["path_planner_properties"]["pos_divergence_recalculate"].as<double>();
-    pathPlannerProperties.rotDivergenceRecalculate = config["path_planner_properties"]["rot_divergence_recalculate"].as<double>();
     pathPlannerProperties.minDistCheckTrajCollision = config["path_planner_properties"]["min_dist_check_traj_collision"].as<double>();
-    pathPlannerProperties.minDistCheckTrajPassedGate = config["path_planner_properties"]["min_dist_check_traj_passed_gate"].as<double>();
     pathPlannerProperties.pathSimplification = config["path_planner_properties"]["path_simplification"].as<std::string>();
     pathPlannerProperties.recalculateOnline = config["path_planner_properties"]["recalculate_online"].as<bool>();
     pathPlannerProperties.canPassGate = config["path_planner_properties"]["can_pass_gate"].as<bool>();
@@ -120,4 +117,6 @@ void ConfigParser::parseTrajectoryGeneratorProperties(const YAML::Node& config)
     trajectoryGeneratorProperties.samplingInterval = config["trajectory_generator_properties"]["sampling_interval"].as<double>();
     trajectoryGeneratorProperties.type = config["trajectory_generator_properties"]["type"].as<std::string>();
     trajectoryGeneratorProperties.maxTime = config["trajectory_generator_properties"]["max_time"].as<double>();
+    trajectoryGeneratorProperties.prependTrajTime = config["trajectory_generator_properties"]["prepend_traj_time"].as<double>();
+    trajectoryGeneratorProperties.maxTrajDivergence = config["trajectory_generator_properties"]["max_traj_divergence"].as<double>();
 }
