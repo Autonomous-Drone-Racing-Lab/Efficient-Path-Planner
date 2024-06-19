@@ -1,6 +1,7 @@
 #include "OnlineTrajGenerator.h"
 #include <iostream>
 #include "poly_traj/trajectory_generator.h"
+#include "OptimalTimeParametrizer.h"
 #include <thread>
 #include <fstream>
 #include <future>
@@ -81,14 +82,6 @@ void OnlineTrajGenerator::preComputeTraj(const double takeoffTime)
         pathSegments.push_back(path);
     }
 
-    // print path segments
-    // for(int i = 0; i < pathSegments.size(); i++){
-    //     std::cout << "Path segment " << i << std::endl;
-    //     for(const auto &waypoint : pathSegments[i]){
-    //         std::cout << waypoint.transpose() << std::endl;
-    //     }
-    // }
-
     const std::vector<Eigen::Vector3d> prunedPath = pathPlanner.includeGates2(pathSegments);
     pathWriter.writePath(prunedPath);
 
@@ -100,15 +93,22 @@ void OnlineTrajGenerator::preComputeTraj(const double takeoffTime)
         const double v_max = configParser->getTrajectoryGeneratorProperties().maxVelocity;
         const double a_max = configParser->getTrajectoryGeneratorProperties().maxAcceleration;
         const Eigen::Vector3d zeros(0, 0, 0);
-        poly_traj::generateTrajectory(prunedPath, v_max, a_max, samplingInterval, 0, zeros, zeros, traj);
+        poly_traj::generateTrajectory(prunedPath, v_max, a_max, samplingInterval, takeoffTime, zeros, zeros, traj);
     }
     else if (configParser->getTrajectoryGeneratorProperties().type == "spline")
     {
         const double maxT = configParser->getTrajectoryGeneratorProperties().maxTime;
         const double v_max = configParser->getTrajectoryGeneratorProperties().maxVelocity;
         const double a_max = configParser->getTrajectoryGeneratorProperties().maxAcceleration;
-        traj = trajInterpolator.interpolateTraj(prunedPath, maxT, 0, samplingInterval);
+        traj = trajInterpolator.interpolateTraj(prunedPath, maxT, takeoffTime, samplingInterval);
         // trajPartPost = trajInterpolator.interpolateTrajMaxVel(filledWaypoints,0, v_max, a_max, advancedTime, samplingInterval);
+    }
+    else if (configParser->getTrajectoryGeneratorProperties().type == "optimal")
+    {
+        const double v_max = configParser->getTrajectoryGeneratorProperties().maxVelocity;
+        const double a_max = configParser->getTrajectoryGeneratorProperties().maxAcceleration;
+        const Eigen::Vector3d zeros(0, 0, 0);
+        traj = OptimalTimeParametrizer::calculateTrajectory(prunedPath, {}, v_max, a_max, takeoffTime, samplingInterval, 0.001);
     }
     else
     {
@@ -340,7 +340,26 @@ void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd 
         const double v_max = configParser->getTrajectoryGeneratorProperties().maxVelocity;
         const double a_max = configParser->getTrajectoryGeneratorProperties().maxAcceleration;
         trajPartPost = trajInterpolator.interpolateTraj(filledWaypoints, maxT, advancedTime, samplingInterval);
-        // trajPartPost = trajInterpolator.interpolateTrajMaxVel(filledWaypoints,0, v_max, a_max, advancedTime, samplingInterval);
+    }
+    else if (configParser->getTrajectoryGeneratorProperties().type == "optimal")
+    {
+        const double v_max = configParser->getTrajectoryGeneratorProperties().maxVelocity;
+        const double a_max = configParser->getTrajectoryGeneratorProperties().maxAcceleration;
+        
+        // necessary as we cannot set previous velocity
+        // what we do instead resimulate previous few seconds and hope that state at
+        // transition time should be similar
+        double prevSampleTime = 3;
+        double prevSamleDt = 0.1;
+        const double startTime = std::max(0.0, advancedTime - prevSampleTime);
+        std::vector<Eigen::Vector3d> prevTrajSampled;
+        for(double t = startTime; t < advancedTime; t += prevSamleDt){
+            Eigen::VectorXd trajEl = sampleTraj(t);
+            Eigen::Vector3d pos(trajEl(0), trajEl(3), trajEl(6));
+            prevTrajSampled.push_back(pos);
+        }
+
+        trajPartPost = OptimalTimeParametrizer::calculateTrajectory(filledWaypoints, prevTrajSampled, v_max, a_max, advancedTime, samplingInterval, 0.001);
     }
     else
     {

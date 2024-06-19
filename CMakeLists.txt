@@ -13,6 +13,7 @@ find_package(ompl REQUIRED)
 
 # Set the include directories
 add_subdirectory(external/poly_traj)
+add_subdirectory(external/time_parametrization)
 
 
 # Create a library from the source files in the src/ directory
@@ -46,6 +47,7 @@ target_link_libraries(${PROJECT_NAME}
     ${Boost_LIBRARIES}
     ${OMPL_LIBRARIES}
     poly_traj
+    time_parametrization
 )
 
 #add_subdirectory(extern/pybind11)
