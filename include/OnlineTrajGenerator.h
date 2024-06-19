@@ -6,6 +6,7 @@
 #include <Eigen/Dense>
 #include <memory>
 #include "PathWriter.h"
+#include "TrajInterpolation.h"
 
 class OnlineTrajGenerator
 {
@@ -37,6 +38,7 @@ private:
     std::vector<std::vector<Eigen::Vector3d>> pathSegments;
     Eigen::MatrixXd plannedTraj;
     PathWriter pathWriter = PathWriter("path_segments");
+    TrajInterpolation trajInterpolator;
 
    
     bool getGateCenterAndNormal(const Eigen::VectorXd &gatePostAndType, Eigen::Vector3d &center, Eigen::Vector3d &normal);

@@ -62,7 +62,6 @@ void PathPlanner::parseGatesAndObstacles(const Eigen::MatrixXd &nominalGatePosit
     // parse nomial gates
     for (int i = 0; i < nominalGatePositionAndType.rows(); i++)
     {
-        std::cout << "Adding gate " << i << std::endl;
         Eigen::VectorXd gate = nominalGatePositionAndType.row(i);
         gate(2) = 0.0; // put all gate to cround
         worldPtr->addGate(i, gate);

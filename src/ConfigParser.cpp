@@ -109,6 +109,7 @@ void ConfigParser::parsePathPlannerProperties(json& config)
     pathPlannerProperties.pathSimplification = config["path_planner_properties"]["path_simplification"];
     pathPlannerProperties.recalculateOnline = config["path_planner_properties"]["recalculate_online"]; 
     pathPlannerProperties.canPassGate = config["path_planner_properties"]["can_pass_gate"]; 
+    pathPlannerProperties.advanceForCalculation = config["path_planner_properties"]["advance_for_calculation"];
 }
 
 void ConfigParser::parseTrajectoryGeneratorProperties(json& config)
@@ -116,6 +117,8 @@ void ConfigParser::parseTrajectoryGeneratorProperties(json& config)
     trajectoryGeneratorProperties.maxVelocity = config["trajectory_generator_properties"]["max_velocity"];
     trajectoryGeneratorProperties.maxAcceleration = config["trajectory_generator_properties"]["max_acceleration"];
     trajectoryGeneratorProperties.samplingInterval = config["trajectory_generator_properties"]["sampling_interval"];
+    trajectoryGeneratorProperties.type = config["trajectory_generator_properties"]["type"];
+    trajectoryGeneratorProperties.maxTime = config["trajectory_generator_properties"]["max_time"];
 }
 
 

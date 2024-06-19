@@ -50,6 +50,7 @@ struct PathPlannerProperties
     double minDistCheckTrajPassedGate;
     std::string pathSimplification;
     bool recalculateOnline;
+    bool advanceForCalculation;
     bool canPassGate;
 };
 
@@ -57,4 +58,6 @@ struct TrajectoryGeneratorProperties{
     double maxVelocity;
     double maxAcceleration;
     double samplingInterval;
+    std::string type;
+    double maxTime;
 };
