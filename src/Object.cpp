@@ -11,6 +11,11 @@ Object::Object(const Eigen::Vector3d& center, const double rot_z, const std::vec
     this->globalCenter = Eigen::Vector3d(0,0,0);
     this->globalRotation = Eigen::Matrix3d::Identity();
     
+    if(center(2) > 1e-6){
+        std::cerr << "Center z position must be zero" << std::endl;
+        exit(1);
+    }
+
     this->translate(center);
     this->rotateZ(rot_z, true);
 }
@@ -35,8 +40,6 @@ Object Object::createFromDescription(const Eigen::Vector3d& globalCenter, const 
         std::cerr << "Rotation around y axis is not supported" << std::endl;
         exit(1);
     }
-
-    
 
     return Object(globalCenter, rot_phi, obbs);
 }
