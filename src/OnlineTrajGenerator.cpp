@@ -5,13 +5,16 @@
 #include <thread>
 #include <fstream>
 #include <future>
+#include <stdexcept>
 
 OnlineTrajGenerator::OnlineTrajGenerator(const Eigen::Vector3d start, const Eigen::Vector3d goal, const Eigen::MatrixXd &nominalGatePositionAndType, const Eigen::MatrixXd &nominalObstaclePosition, const std::string &configPath)
     : configParser(std::make_shared<ConfigParser>(configPath)),
       pathPlanner(PathPlanner(nominalGatePositionAndType, nominalObstaclePosition, configParser)),
       nominalGatePositionAndType(nominalGatePositionAndType),
       nominalObstaclePosition(nominalObstaclePosition)
-{
+{   
+    // set log lelvels
+    ompl::msg::setLogLevel(ompl::msg::LOG_WARN);
 
     // write nominal gate positions and types to file
     for (int i = 0; i < nominalGatePositionAndType.rows(); ++i)
@@ -98,8 +101,6 @@ void OnlineTrajGenerator::preComputeTraj(const double takeoffTime)
     else if (configParser->getTrajectoryGeneratorProperties().type == "spline")
     {
         const double maxT = configParser->getTrajectoryGeneratorProperties().maxTime;
-        const double v_max = configParser->getTrajectoryGeneratorProperties().maxVelocity;
-        const double a_max = configParser->getTrajectoryGeneratorProperties().maxAcceleration;
         traj = trajInterpolator.interpolateTraj(prunedPath, maxT, takeoffTime, samplingInterval);
         // trajPartPost = trajInterpolator.interpolateTrajMaxVel(filledWaypoints,0, v_max, a_max, advancedTime, samplingInterval);
     }
@@ -113,7 +114,7 @@ void OnlineTrajGenerator::preComputeTraj(const double takeoffTime)
     else
     {
         std::cerr << "Trajectory type not supported" << std::endl;
-        exit(1);
+        throw std::runtime_error("Trajectory type not supported");
     }
     plannedTraj = traj;
 }
@@ -149,7 +150,7 @@ bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd 
     const Eigen::VectorXd &timeColumn = plannedTraj.col(lastColIdx);
     const Eigen::VectorXd timeDifferences = (timeColumn.array() - flightTime).abs();
     Eigen::Index startIdx;
-    const double minTimeDifference = timeDifferences.minCoeff(&startIdx);
+    timeDifferences.minCoeff(&startIdx);
 
     // find next gate
     const int checkpointIdNextGate = 2 * gateId + 3 < checkpoints.size() ? 2 * gateId + 3 : checkpoints.size() - 1;
@@ -158,7 +159,7 @@ bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd 
     trajPos << plannedTraj.col(0), plannedTraj.col(3), plannedTraj.col(6);
     const Eigen::VectorXd posDifferences = (trajPos.rowwise() - nextCheckpoint.transpose()).rowwise().norm();
     Eigen::Index endIdx;
-    const double minDistance = posDifferences.minCoeff(&endIdx);
+    posDifferences.minCoeff(&endIdx);
     const Eigen::MatrixXd &lookaheadTrajSegment = plannedTraj.block(startIdx, 0, endIdx - startIdx, plannedTraj.cols());
 
     // check that next gate is passed
@@ -206,7 +207,7 @@ bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd 
     if (trajectoryCurrentlyUpdating)
     {
         std::cerr << "Call to update trajectory, while previous update is still going on";
-        exit(1);
+        throw std::runtime_error("Call to update trajectory, while previous update is still going on");
     }
 
     trajectoryCurrentlyUpdating = true;
@@ -344,14 +345,14 @@ void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd 
     if (!preSegmentResult)
     {
         std::cerr << "Pre path not found. Exiting" << std::endl;
-        exit(1);
+        throw std::runtime_error("Pre path not found. Exiting");
     }
     pathSegments[segmentIdPre] = preSegmentPath;
 
     if (!postSegmentResult)
     {
         std::cerr << "Post segment path not found. Exiting" << std::endl;
-        exit(1);
+        throw std::runtime_error("Post segment path not found. Exiting");
     }
     pathSegments[segmentIdPost] = postSegmentPath;
 
@@ -406,7 +407,7 @@ void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd 
     else
     {
         std::cerr << "Trajectory type not supported" << std::endl;
-        exit(1);
+        throw std::runtime_error("Trajectory type not supported");
     }
 
     // merge trajectories together, pre computed and current

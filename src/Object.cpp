@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <stdexcept>
 
 Object::Object(const Eigen::Vector3d& center, const double rot_z, const std::vector<OBB>& obbs): obbs(obbs){
     this->globalCenter = Eigen::Vector3d(0,0,0);
@@ -13,7 +14,7 @@ Object::Object(const Eigen::Vector3d& center, const double rot_z, const std::vec
     
     if(center(2) > 1e-6){
         std::cerr << "Center z position must be zero" << std::endl;
-        exit(1);
+        throw std::runtime_error("Center z position must be zero");
     }
 
     this->translate(center);
@@ -34,11 +35,11 @@ Object Object::createFromDescription(const Eigen::Vector3d& globalCenter, const 
 
     if(abs(rot_theta) > 1e-6){
         std::cerr << "Rotation around x axis is not supported" << std::endl;
-        exit(1);
+        throw std::runtime_error("Rotation around x axis is not supported");
     }
     if (abs(rot_psi) > 1e-6){
         std::cerr << "Rotation around y axis is not supported" << std::endl;
-        exit(1);
+        throw std::runtime_error("Rotation around y axis is not supported");
     }
 
     return Object(globalCenter, rot_phi, obbs);

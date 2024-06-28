@@ -26,7 +26,7 @@ PathWriter::PathWriter(const std::string &folderPath)
                 if (std::filesystem::is_regular_file(entry))
                 {
                     std::filesystem::remove(entry);
-                    std::cout << "Removed file: " << entry.path() << std::endl;
+                    //std::cout << "Removed file: " << entry.path() << std::endl;
                 }
             }
         }

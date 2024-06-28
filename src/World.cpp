@@ -58,7 +58,6 @@ void World::addObstacle(const int obstacleId, const Eigen::VectorXd &coordinates
 
 void World::addObject(const Object &obj, const int id, const std::string &type, const double inflateSize)
 {
-    std::cout << "Adding object " << id << std::endl;
     // create bounding boxes to insert in r-tree
     std::vector<box> aabbs = obj.getAABBs(inflateSize);
     for (int i = 0; i < aabbs.size(); i++)

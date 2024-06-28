@@ -12,15 +12,10 @@ ConfigParser::ConfigParser(const std::string& configPath)
     this->config = YAML::LoadFile(configPath);
 
     parseGeometries(config);
-    std::cout << "Parsing geometries done" << std::endl;
     parseObjectProperties(config);
-    std::cout << "Parsing object properties done" << std::endl;
     parseWorldProperties(config);
-    std::cout << "Parsing world properties done" << std::endl;
     parsePathPlannerProperties(config);
-    std::cout << "Parsing path planner properties done" << std::endl;
     parseTrajectoryGeneratorProperties(config);
-    std::cout << "Parsing trajectory generator properties done" << std::endl;
 }
 
 const std::vector<OBBDescription>& ConfigParser::getGateGeometryByTypeId(const int typeId) const
@@ -108,6 +103,7 @@ void ConfigParser::parsePathPlannerProperties(const YAML::Node& config)
     pathPlannerProperties.recalculateOnline = config["path_planner_properties"]["recalculate_online"].as<bool>();
     pathPlannerProperties.canPassGate = config["path_planner_properties"]["can_pass_gate"].as<bool>();
     pathPlannerProperties.advanceForCalculation = config["path_planner_properties"]["advance_for_calculation"].as<bool>();
+    pathPlannerProperties.planner = config["path_planner_properties"]["planner"].as<std::string>();
 }
 
 void ConfigParser::parseTrajectoryGeneratorProperties(const YAML::Node& config)

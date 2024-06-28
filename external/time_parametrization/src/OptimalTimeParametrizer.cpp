@@ -5,6 +5,7 @@
 #include "Path.h"
 #include <list>
 #include <iostream>
+#include <stdexcept>
 namespace OptimalTimeParametrizer{
     Eigen::MatrixXd calculateTrajectory(const std::vector<Eigen::Vector3d>& waypoints, const std::vector<Eigen::Vector3d> preWaypoints, const double v_max, const double a_max, const double startTimeOffset, const double samplingInterval, const double maxDivergence){
         std::list<Eigen::VectorXd> waypointsList(waypoints.begin(), waypoints.end());
@@ -19,8 +20,7 @@ namespace OptimalTimeParametrizer{
         const Trajectory traj(path, vMaxVec, aMaxVec);
 
         if(!traj.isValid()){
-            std::cerr << "Trajectory generaitonf failed. Aborting!" << std::endl;
-            exit(1);
+            throw std::runtime_error("Trajectory is not valid");
         }
 
         const double duration = traj.getDuration();
@@ -41,9 +41,6 @@ namespace OptimalTimeParametrizer{
            }
 
         }
-
-        std::cout << "Offset idx: " << offsetIdx << std::endl;
-
         Eigen::MatrixXd result(noWaypoints - offsetIdx, 10);
         for(int i = 0; i < noWaypoints - offsetIdx; ++i){
             const double t = (i + offsetIdx) * samplingInterval;

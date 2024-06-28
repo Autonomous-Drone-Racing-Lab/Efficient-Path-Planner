@@ -20,6 +20,7 @@
 #include <ompl/geometric/planners/rrt/RRTXstatic.h>
 #include <ompl/geometric/planners/rrt/RRTsharp.h>
 #include <ompl/geometric/PathSimplifier.h>
+#include <ompl/geometric/planners/fmt/FMT.h>
 
 namespace ob = ompl::base;
 PathPlanner::PathPlanner(const Eigen::MatrixXd &nominalGatePositionAndType, const Eigen::MatrixXd &nominalObstaclePosition, std::shared_ptr<ConfigParser> configParser)
@@ -100,10 +101,19 @@ bool PathPlanner::planPath(const Eigen::Vector3d &start, const Eigen::Vector3d &
     pdef->setStartAndGoalStates(startState, goalState);
 
     // create planner
-    // ob::PlannerPtr planner(new ompl::geometric::RRTstar(si));
-    std::shared_ptr<ompl::geometric::RRTstar> algo = std::make_shared<ompl::geometric::RRTstar>(si);
-    algo->setRange(configParser->getPathPlannerProperties().range);
-    ob::PlannerPtr planner(algo);
+    ob::PlannerPtr planner;
+    if(configParser->getPathPlannerProperties().planner == "rrt"){
+        std::shared_ptr<ompl::geometric::RRTstar> algo = std::make_shared<ompl::geometric::RRTstar>(si);
+        algo->setRange(configParser->getPathPlannerProperties().range);
+        planner = ob::PlannerPtr(algo);
+    }else if(configParser->getPathPlannerProperties().planner == "fmt"){
+        std::shared_ptr<ompl::geometric::FMT> algo = std::make_shared<ompl::geometric::FMT>(si);
+        planner = ob::PlannerPtr(algo);
+    }
+    else {
+        std::cerr << "Unknown planner" << std::endl;
+        throw std::runtime_error("Unknown planner");
+    }
 
     planner->setProblemDefinition(pdef);
     planner->setup();
@@ -184,7 +194,7 @@ std::vector<Eigen::Vector3d> PathPlanner::includeGates2(std::vector<std::vector<
         }
         else{
             std::cerr << "Unknown pruning method" << std::endl;
-            exit(1);
+            throw std::runtime_error("Unknown pruning method");
         }
 
        for(const auto& waypoint : prunedWaypoints){
