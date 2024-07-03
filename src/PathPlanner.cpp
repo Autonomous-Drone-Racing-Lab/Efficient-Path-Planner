@@ -126,7 +126,7 @@ bool PathPlanner::planPath(const Eigen::Vector3d &start, const Eigen::Vector3d &
         // Get the path as geometric Path
         auto path = pdef->getSolutionPath()->as<ompl::geometric::PathGeometric>();
         ompl::geometric::PathSimplifier pathSimplifier(si);
-        pathSimplifier.reduceVertices(*path);
+        pathSimplifier.reduceVertices(*path, 0, 0, 1);
         // pathSimplifier.smoothBSpline(*path, 5);
 
         // Convert the path to an Eigen::MatrixXd

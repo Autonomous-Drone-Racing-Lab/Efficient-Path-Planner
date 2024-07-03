@@ -378,8 +378,6 @@ void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd 
     else if (configParser->getTrajectoryGeneratorProperties().type == "spline")
     {
         const double maxT = configParser->getTrajectoryGeneratorProperties().maxTime;
-        const double v_max = configParser->getTrajectoryGeneratorProperties().maxVelocity;
-        const double a_max = configParser->getTrajectoryGeneratorProperties().maxAcceleration;
         trajPartPost = trajInterpolator.interpolateTraj(filledWaypoints, maxT, advancedTime, samplingInterval);
     }
     else if (configParser->getTrajectoryGeneratorProperties().type == "optimal")
