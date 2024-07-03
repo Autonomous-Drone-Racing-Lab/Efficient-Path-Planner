@@ -20,6 +20,7 @@
 #include <ompl/geometric/planners/rrt/RRTXstatic.h>
 #include <ompl/geometric/planners/rrt/RRTsharp.h>
 #include <ompl/geometric/PathSimplifier.h>
+#include <ompl/geometric/planners/fmt/FMT.h>
 
 namespace ob = ompl::base;
 PathPlanner::PathPlanner(const Eigen::MatrixXd &nominalGatePositionAndType, const Eigen::MatrixXd &nominalObstaclePosition, std::shared_ptr<ConfigParser> configParser)
@@ -100,10 +101,19 @@ bool PathPlanner::planPath(const Eigen::Vector3d &start, const Eigen::Vector3d &
     pdef->setStartAndGoalStates(startState, goalState);
 
     // create planner
-    // ob::PlannerPtr planner(new ompl::geometric::RRTstar(si));
-    std::shared_ptr<ompl::geometric::RRTstar> algo = std::make_shared<ompl::geometric::RRTstar>(si);
-    algo->setRange(configParser->getPathPlannerProperties().range);
-    ob::PlannerPtr planner(algo);
+    ob::PlannerPtr planner;
+    if(configParser->getPathPlannerProperties().planner == "rrt"){
+        std::shared_ptr<ompl::geometric::RRTstar> algo = std::make_shared<ompl::geometric::RRTstar>(si);
+        algo->setRange(configParser->getPathPlannerProperties().range);
+        planner = ob::PlannerPtr(algo);
+    }else if(configParser->getPathPlannerProperties().planner == "fmt"){
+        std::shared_ptr<ompl::geometric::FMT> algo = std::make_shared<ompl::geometric::FMT>(si);
+        planner = ob::PlannerPtr(algo);
+    }
+    else {
+        std::cerr << "Unknown planner" << std::endl;
+        throw std::runtime_error("Unknown planner");
+    }
 
     planner->setProblemDefinition(pdef);
     planner->setup();
@@ -116,7 +126,7 @@ bool PathPlanner::planPath(const Eigen::Vector3d &start, const Eigen::Vector3d &
         // Get the path as geometric Path
         auto path = pdef->getSolutionPath()->as<ompl::geometric::PathGeometric>();
         ompl::geometric::PathSimplifier pathSimplifier(si);
-        pathSimplifier.reduceVertices(*path);
+        pathSimplifier.reduceVertices(*path, 0, 0, 1);
         // pathSimplifier.smoothBSpline(*path, 5);
 
         // Convert the path to an Eigen::MatrixXd
@@ -184,7 +194,7 @@ std::vector<Eigen::Vector3d> PathPlanner::includeGates2(std::vector<std::vector<
         }
         else{
             std::cerr << "Unknown pruning method" << std::endl;
-            exit(1);
+            throw std::runtime_error("Unknown pruning method");
         }
 
        for(const auto& waypoint : prunedWaypoints){
@@ -233,89 +243,6 @@ std::vector<Eigen::Vector3d> PathPlanner::pruneWaypoints(const std::vector<Eigen
     return prunedWaypoints;
 }
 
-std::vector<Eigen::Vector3d> PathPlanner::includeGates(const std::vector<std::vector<Eigen::Vector3d>> &waypoints) const
-{
-    std::vector<Eigen::Vector3d> waypointsFlattened;
-    for (int i = 0; i < waypoints.size(); i++)
-    {   
-        // ignore last waypoint, directly skip to center
-        for (int j = 0; j < waypoints[i].size() - 1; j++)
-        {
-            waypointsFlattened.push_back(waypoints[i][j]);
-        }
-
-        // add gate
-        if (i < waypoints.size() - 1)
-        {
-            const Eigen::Vector3d gate = (waypoints[i][waypoints[i].size() - 1] + waypoints[i + 1][0]) / 2;
-            waypointsFlattened.push_back(gate);
-        }
-    }
-
-    return waypointsFlattened;
-}
-
-// std::set<int> PathPlanner::checkTrajectoryValidityAndReturnCollisionIdx(const Eigen::MatrixXd &trajectoryPoints, const std::vector<Eigen::Vector3d> &prunedPath, int number_check_next_samples) const
-// {
-//     // set to make sure same index is only inserted once
-//     std::set<int> insertionIndice;
-
-//     int numberSamples = trajectoryPoints.rows();
-//     if (number_check_next_samples != -1)
-//     {
-//         numberSamples = std::min(numberSamples, number_check_next_samples);
-//     }
-
-//     for (int rowIdx = 0; rowIdx < numberSamples; rowIdx++)
-//     {
-//         const Eigen::Vector3d trajectoryPoint = trajectoryPoints.row(rowIdx);
-//         if (worldPtr->checkPointValidity(trajectoryPoint, 0.7, true))
-//         {
-//             continue;
-//         }
-
-//         // find the closest point in the pruned path
-//         double minDistance = std::numeric_limits<double>::max();
-//         int closestIdx = -1;
-//         for (int i = 0; i < prunedPath.size(); i++)
-//         {
-//             const double distance = (trajectoryPoint - prunedPath[i]).norm();
-//             if (distance < minDistance)
-//             {
-//                 minDistance = distance;
-//                 closestIdx = i;
-//             }
-//         }
-
-//         // check if the collision comes after or before point
-//         if (closestIdx == 0)
-//         {
-//             insertionIndice.insert(0);
-//             continue;
-//         }
-//         if (closestIdx == prunedPath.size() - 1)
-//         {
-//             insertionIndice.insert(prunedPath.size() - 1);
-//             continue;
-//         }
-
-//         const double preDistance = (trajectoryPoint - prunedPath[closestIdx - 1]).norm();
-//         const double postDistance = (trajectoryPoint - prunedPath[closestIdx + 1]).norm();
-//         // Todo this check is not ideal and probably not 100 percent correct
-//         // case a point is close to previous than to next, implying point is between previous and current point
-//         if (preDistance < postDistance)
-//         {
-//             insertionIndice.insert(closestIdx);
-//         }
-//         // case a point is close to next than to previous, implying point is between current and next point
-//         else
-//         {
-//             insertionIndice.insert(closestIdx + 1);
-//         }
-//     }
-
-//     return insertionIndice;
-// }
 
 bool PathPlanner::checkTrajectoryValidity(const Eigen::MatrixXd &trajectory, const double minDistance) const
 {

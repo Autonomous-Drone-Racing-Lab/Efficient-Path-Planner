@@ -49,6 +49,7 @@ struct PathPlannerProperties
     bool recalculateOnline;
     bool advanceForCalculation;
     bool canPassGate;
+    std::string planner;
     
 };
 
