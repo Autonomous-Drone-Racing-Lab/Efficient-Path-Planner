@@ -21,6 +21,7 @@
 #include <ompl/geometric/planners/rrt/RRTsharp.h>
 #include <ompl/geometric/PathSimplifier.h>
 #include <ompl/geometric/planners/fmt/FMT.h>
+#include <chrono>
 
 namespace ob = ompl::base;
 PathPlanner::PathPlanner(const Eigen::MatrixXd &nominalGatePositionAndType, const Eigen::MatrixXd &nominalObstaclePosition, std::shared_ptr<ConfigParser> configParser)
@@ -108,6 +109,7 @@ bool PathPlanner::planPath(const Eigen::Vector3d &start, const Eigen::Vector3d &
         planner = ob::PlannerPtr(algo);
     }else if(configParser->getPathPlannerProperties().planner == "fmt"){
         std::shared_ptr<ompl::geometric::FMT> algo = std::make_shared<ompl::geometric::FMT>(si);
+        algo->setNumSamples(10000);
         planner = ob::PlannerPtr(algo);
     }
     else {
@@ -118,7 +120,10 @@ bool PathPlanner::planPath(const Eigen::Vector3d &start, const Eigen::Vector3d &
     planner->setProblemDefinition(pdef);
     planner->setup();
 
+    //std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     ob::PlannerStatus solved = planner->solve(timeLimit);
+    //std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    //std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[µs]" << std::endl;
 
     // now convert back to Eigen::MatrixXd, i.e. [[x1, y1, z1], [x2, y2, z2], ...]
     if (solved)

@@ -6,6 +6,7 @@
 #include <fstream>
 #include <future>
 #include <stdexcept>
+#include <chrono>
 
 OnlineTrajGenerator::OnlineTrajGenerator(const Eigen::Vector3d start, const Eigen::Vector3d goal, const Eigen::MatrixXd &nominalGatePositionAndType, const Eigen::MatrixXd &nominalObstaclePosition, const std::string &configPath)
     : configParser(std::make_shared<ConfigParser>(configPath)),
@@ -256,6 +257,7 @@ bool OnlineTrajGenerator::checkGatePassed(const Eigen::Vector3d &pos1, const Eig
 
 void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd &newPose, const Eigen::Vector3d &dronePos, const double flightTime)
 {
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
     // Generally relevant idxs
     const int segmentIdPre = gateId;
@@ -413,6 +415,9 @@ void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd 
     newTraj << trajectoryPartPre, trajPartPost;
     plannedTraj = newTraj;
     trajectoryCurrentlyUpdating = false;
+
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    std::cout << "Recomputed trajectory in " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " ms" << std::endl;
 }
 
 Eigen::VectorXd OnlineTrajGenerator::sampleTraj(const double currentTime) const
