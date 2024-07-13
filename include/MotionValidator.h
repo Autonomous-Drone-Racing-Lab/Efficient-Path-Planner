@@ -4,15 +4,17 @@
 #include <memory>
 #include "World.h"
 
+/**
+ * @class MotionValidator
+ * @brief A class that validates motion between states in a given space. 
+ * 
+ * This class is a subclass of `ompl::base::MotionValidator` and provides motion validation for our drone flught scenario.
+*/
 class MotionValidator: public ompl::base::MotionValidator
 {
     public:
     /**
-     * @class MotionValidator
-     * @brief A class that validates motion between states in a given space.
-     *
-     * This class is a subclass of `ompl::base::MotionValidator` and provides motion validation for our 
-     * drone flight scenario.
+     * Construct Motion Validator object.
      * 
      * @param si The space information for which motion is to be validated.
      * @param world A reference to the world (i.e. the drone flight environment)

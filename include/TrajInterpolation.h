@@ -1,6 +1,11 @@
 #include <Eigen/Dense>
 #include <unsupported/Eigen/Splines>
 
+/**
+ * Custom class for traj Interpolation based on fitting a spline and parametrizing it with uniform path velocity.
+ * 
+ * This class is created for debug purposes. For good performance Minimum Snap or Time Optimal Parametrization should be utilized.
+*/
 class TrajInterpolation
 {
 public:

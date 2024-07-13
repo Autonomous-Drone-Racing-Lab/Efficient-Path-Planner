@@ -17,6 +17,9 @@ typedef boost::geometry::model::box<point> box;
 typedef std::pair<box, std::string> value;
 typedef boost::geometry::index::rtree<value, boost::geometry::index::quadratic<16>> rtree;
 
+/**
+ * Structure defining oriented bounding boxes of common objects (Gate, Obstacle) for configuring the world
+*/
 struct OBBDescription
 {
     Eigen::Vector3d center;
@@ -25,11 +28,17 @@ struct OBBDescription
     std::string name;
 };
 
+/**
+ * Structure defining properties of common objects (Gate, Obstacle) for configuring the world
+*/
 struct ObjectProperties
 {
     double height;
 };
 
+/**
+ * Configuration Parameters World
+*/
 struct WorldProperties
 {
     Eigen::Vector3d lowerBound;
@@ -37,6 +46,9 @@ struct WorldProperties
     std::map<std::string, double> inflateRadius;
 };
 
+/**
+ * Configuration Parameters Path Planner
+*/
 struct PathPlannerProperties
 {
     double optimalityThresholdPercentage;
@@ -53,6 +65,9 @@ struct PathPlannerProperties
     
 };
 
+/**
+ * Configuration Parameters Trajectory Generator
+*/
 struct TrajectoryGeneratorProperties{
     double maxVelocity;
     double maxAcceleration;
