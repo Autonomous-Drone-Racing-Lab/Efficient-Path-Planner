@@ -4,7 +4,7 @@
 To use this code, relevant other packages must be installed before. Below you will find a list of instructions
 
 **Install Submodules**
-Two external dependencies must be added to this codebase in the form of Git Submodules. Pybind11 for creating the pyhon bindings as well as a custom poly_traj package for generting minimum snap trajectories. Download both packages using
+One external dependencies must be added to this codebase in the form of Git Submodules. Pybind11 for creating the pyhon bindings. (Tqo other external dependencies for path planning a provided within this repository and the external folder)
 ```
 git submodule init
 git submodule update --remote
