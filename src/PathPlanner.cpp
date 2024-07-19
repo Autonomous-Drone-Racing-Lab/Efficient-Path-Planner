@@ -30,7 +30,7 @@ PathPlanner::PathPlanner(const Eigen::MatrixXd &nominalGatePositionAndType, cons
 
     worldPtr = std::make_shared<World>(configParser);
 
-        // parse nomial gates
+    // parse nomial gates
     parseGatesAndObstacles(nominalGatePositionAndType, nominalObstaclePosition);
 
     // Todo, potential memory leak
@@ -44,7 +44,7 @@ PathPlanner::PathPlanner(const Eigen::MatrixXd &nominalGatePositionAndType, cons
     space->as<ob::RealVectorStateSpace>()->setBounds(bounds);
 
     // SI cannot pass gates (normal state space)
-    const bool canPassGates = configParser->getPathPlannerProperties().canPassGate; 
+    const bool canPassGates = configParser->getPathPlannerProperties().canPassGate;
     si = ob::SpaceInformationPtr(new ob::SpaceInformation(space));
     si->setStateValidityChecker(std::make_shared<StateValidator>(si, worldPtr, canPassGates));
     si->setMotionValidator(std::make_shared<MotionValidator>(si, worldPtr, canPassGates));
@@ -59,7 +59,7 @@ PathPlanner::PathPlanner(const Eigen::MatrixXd &nominalGatePositionAndType, cons
 
 void PathPlanner::parseGatesAndObstacles(const Eigen::MatrixXd &nominalGatePositionAndType, const Eigen::MatrixXd &nominalObstaclePosition)
 {
-    
+
     worldPtr->resetWorld();
     // parse nomial gates
     for (int i = 0; i < nominalGatePositionAndType.rows(); i++)
@@ -103,16 +103,21 @@ bool PathPlanner::planPath(const Eigen::Vector3d &start, const Eigen::Vector3d &
 
     // create planner
     ob::PlannerPtr planner;
-    if(configParser->getPathPlannerProperties().planner == "rrt"){
+    if (configParser->getPathPlannerProperties().planner == "rrt")
+    {
         std::shared_ptr<ompl::geometric::RRTstar> algo = std::make_shared<ompl::geometric::RRTstar>(si);
         algo->setRange(configParser->getPathPlannerProperties().range);
         planner = ob::PlannerPtr(algo);
-    }else if(configParser->getPathPlannerProperties().planner == "fmt"){
+    }
+    else if (configParser->getPathPlannerProperties().planner == "fmt")
+    {
         std::shared_ptr<ompl::geometric::FMT> algo = std::make_shared<ompl::geometric::FMT>(si);
-        algo->setNumSamples(10000);
+        const int samples = configParser->getTrajectoryGeneratorProperties().samplesFTM;
+        algo->setNumSamples(samples);
         planner = ob::PlannerPtr(algo);
     }
-    else {
+    else
+    {
         std::cerr << "Unknown planner" << std::endl;
         throw std::runtime_error("Unknown planner");
     }
@@ -120,10 +125,10 @@ bool PathPlanner::planPath(const Eigen::Vector3d &start, const Eigen::Vector3d &
     planner->setProblemDefinition(pdef);
     planner->setup();
 
-    //std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+    // std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     ob::PlannerStatus solved = planner->solve(timeLimit);
-    //std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    //std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[µs]" << std::endl;
+    // std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    // std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[µs]" << std::endl;
 
     // now convert back to Eigen::MatrixXd, i.e. [[x1, y1, z1], [x2, y2, z2], ...]
     if (solved)
@@ -169,42 +174,53 @@ void PathPlanner::updateGatePos(const int gateId, const Eigen::Vector3d &newPose
 
 std::vector<Eigen::Vector3d> PathPlanner::includeGates2(std::vector<std::vector<Eigen::Vector3d>> waypoints) const
 {
-     // step 1: inlcude gate positions
+    // step 1: inlcude gate positions
     std::vector<Eigen::Vector3d> gateCenters;
     for (int firstSegmentIdx = 0; firstSegmentIdx < waypoints.size() - 1; firstSegmentIdx++)
     {
-        const Eigen::Vector3d& firstSegmentEnd = waypoints[firstSegmentIdx][waypoints[firstSegmentIdx].size() - 1];
-        const Eigen::Vector3d& secondSegmentStart = waypoints[firstSegmentIdx + 1][0];
+        const Eigen::Vector3d &firstSegmentEnd = waypoints[firstSegmentIdx][waypoints[firstSegmentIdx].size() - 1];
+        const Eigen::Vector3d &secondSegmentStart = waypoints[firstSegmentIdx + 1][0];
         gateCenters.push_back((firstSegmentEnd + secondSegmentStart) / 2);
     }
 
     // step 2: include gate centers
-    for(int i = 0; i < gateCenters.size(); i++){
+    for (int i = 0; i < gateCenters.size(); i++)
+    {
         waypoints[i].push_back(gateCenters[i]);
-        if(i < gateCenters.size()){
+        if (i < gateCenters.size())
+        {
             waypoints[i + 1].insert(waypoints[i + 1].begin(), gateCenters[i]);
         }
     }
 
     std::vector<Eigen::Vector3d> waypointsFlattened;
-    for(const auto& segment : waypoints){
+    for (const auto &segment : waypoints)
+    {
         const std::string simplificationMethod = configParser->getPathPlannerProperties().pathSimplification;
         std::vector<Eigen::Vector3d> prunedWaypoints;
-        if(simplificationMethod == "none"){
+        if (simplificationMethod == "none")
+        {
             prunedWaypoints = segment;
-        }else if(simplificationMethod == "ompl"){
+        }
+        else if (simplificationMethod == "ompl")
+        {
             prunedWaypoints = omplPrunePathAndInterpolate(segment);
-        }else if(simplificationMethod == "custom"){
+        }
+        else if (simplificationMethod == "custom")
+        {
             prunedWaypoints = pruneWaypoints(segment);
         }
-        else{
+        else
+        {
             std::cerr << "Unknown pruning method" << std::endl;
             throw std::runtime_error("Unknown pruning method");
         }
 
-       for(const auto& waypoint : prunedWaypoints){
+        for (const auto &waypoint : prunedWaypoints)
+        {
             // do not include duplicates
-            if(waypointsFlattened.size() > 0 && (waypointsFlattened.back() - waypoint).norm() < 0.05){
+            if (waypointsFlattened.size() > 0 && (waypointsFlattened.back() - waypoint).norm() < 0.05)
+            {
                 continue;
             }
             waypointsFlattened.push_back(waypoint);
@@ -248,11 +264,10 @@ std::vector<Eigen::Vector3d> PathPlanner::pruneWaypoints(const std::vector<Eigen
     return prunedWaypoints;
 }
 
-
 bool PathPlanner::checkTrajectoryValidity(const Eigen::MatrixXd &trajectory, const double minDistance) const
 {
     for (int i = 0; i < trajectory.rows(); i++)
-    {   
+    {
         const Eigen::MatrixXd trajRow = trajectory.row(i);
         Eigen::Vector3d trajectoryPoint;
         trajectoryPoint << trajRow(0), trajRow(3), trajRow(6);
@@ -264,14 +279,15 @@ bool PathPlanner::checkTrajectoryValidity(const Eigen::MatrixXd &trajectory, con
     return true;
 }
 
-
-std::vector<Eigen::Vector3d> PathPlanner::omplPrunePathAndInterpolate(std::vector<Eigen::Vector3d> waypoints) const{
+std::vector<Eigen::Vector3d> PathPlanner::omplPrunePathAndInterpolate(std::vector<Eigen::Vector3d> waypoints) const
+{
 
     ompl::geometric::PathGeometric path(si);
 
-       for (const auto& point : waypoints) {
+    for (const auto &point : waypoints)
+    {
         // Todo check for memory leakage
-        ob::State* state = space->allocState();
+        ob::State *state = space->allocState();
         state->as<ob::RealVectorStateSpace::StateType>()->values[0] = point(0);
         state->as<ob::RealVectorStateSpace::StateType>()->values[1] = point(1);
         state->as<ob::RealVectorStateSpace::StateType>()->values[2] = point(2);
@@ -280,17 +296,18 @@ std::vector<Eigen::Vector3d> PathPlanner::omplPrunePathAndInterpolate(std::vecto
     }
 
     ompl::geometric::PathSimplifier pathSimplifier(si);
-    //pathSimplifier.reduceVertices(path);
-    //pathSimplifier.shortcutPath(path);
+    // pathSimplifier.reduceVertices(path);
+    // pathSimplifier.shortcutPath(path);
     pathSimplifier.smoothBSpline(path);
 
     // convert back to eigen vector<Eigen::Vector3d>
-        std::vector<Eigen::Vector3d> result;
-    for (std::size_t i = 0; i < path.getStateCount(); ++i) {
-        const auto* state = path.getState(i)->as<ob::RealVectorStateSpace::StateType>();
+    std::vector<Eigen::Vector3d> result;
+    for (std::size_t i = 0; i < path.getStateCount(); ++i)
+    {
+        const auto *state = path.getState(i)->as<ob::RealVectorStateSpace::StateType>();
         Eigen::Vector3d point(state->values[0], state->values[1], state->values[2]);
         result.push_back(point);
-        //delete state;
+        // delete state;
     }
 
     return result;

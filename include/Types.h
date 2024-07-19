@@ -7,10 +7,8 @@
 #include <boost/geometry/geometries/register/point.hpp>
 #include <map>
 
-
 // Register Eigen::Vector3d as a point type to Boost Geometry
 BOOST_GEOMETRY_REGISTER_POINT_3D(Eigen::Vector3d, double, boost::geometry::cs::cartesian, x(), y(), z())
-
 
 typedef Eigen::Vector3d point;
 typedef boost::geometry::model::box<point> box;
@@ -19,7 +17,7 @@ typedef boost::geometry::index::rtree<value, boost::geometry::index::quadratic<1
 
 /**
  * Structure defining oriented bounding boxes of common objects (Gate, Obstacle) for configuring the world
-*/
+ */
 struct OBBDescription
 {
     Eigen::Vector3d center;
@@ -30,7 +28,7 @@ struct OBBDescription
 
 /**
  * Structure defining properties of common objects (Gate, Obstacle) for configuring the world
-*/
+ */
 struct ObjectProperties
 {
     double height;
@@ -38,7 +36,7 @@ struct ObjectProperties
 
 /**
  * Configuration Parameters World
-*/
+ */
 struct WorldProperties
 {
     Eigen::Vector3d lowerBound;
@@ -48,7 +46,7 @@ struct WorldProperties
 
 /**
  * Configuration Parameters Path Planner
-*/
+ */
 struct PathPlannerProperties
 {
     double optimalityThresholdPercentage;
@@ -62,18 +60,19 @@ struct PathPlannerProperties
     bool advanceForCalculation;
     bool canPassGate;
     std::string planner;
-    
 };
 
 /**
  * Configuration Parameters Trajectory Generator
-*/
-struct TrajectoryGeneratorProperties{
+ */
+struct TrajectoryGeneratorProperties
+{
     double maxVelocity;
     double maxAcceleration;
     double samplingInterval;
     std::string type;
     double maxTime;
+    int samplesFTM;
 
     double maxTrajDivergence;
     double prependTrajTime;

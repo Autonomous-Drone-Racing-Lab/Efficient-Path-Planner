@@ -13,7 +13,7 @@ OnlineTrajGenerator::OnlineTrajGenerator(const Eigen::Vector3d start, const Eige
       pathPlanner(PathPlanner(nominalGatePositionAndType, nominalObstaclePosition, configParser)),
       nominalGatePositionAndType(nominalGatePositionAndType),
       nominalObstaclePosition(nominalObstaclePosition)
-{   
+{
     // set log lelvels
     ompl::msg::setLogLevel(ompl::msg::LOG_WARN);
 
@@ -186,7 +186,7 @@ bool OnlineTrajGenerator::updateGatePos(const int gateId, const Eigen::VectorXd 
     else
     {
         std::cout << "Current trajectory is passing next gate" << std::endl;
-        
+
         // insert here for computational efficiency
         const double minDistanceCollision = configParser->getPathPlannerProperties().minDistCheckTrajCollision;
         trajectoryValid = pathPlanner.checkTrajectoryValidity(lookaheadTrajSegment, minDistanceCollision);
@@ -234,7 +234,6 @@ bool OnlineTrajGenerator::checkGatePassed(const Eigen::Vector3d &pos1, const Eig
     double cosGoal = cos(gate(5));
     double sinGoal = sin(gate(5));
 
-
     const Eigen::Vector3d pos1Tran = pos1 - center;
     Eigen::Vector3d pos1Gate;
     pos1Gate << cosGoal * pos1Tran(0) - sinGoal * pos1Tran(1), sinGoal * pos1Tran(0) + cosGoal * pos1Tran(1), pos1Tran(2);
@@ -248,7 +247,8 @@ bool OnlineTrajGenerator::checkGatePassed(const Eigen::Vector3d &pos1, const Eig
         // check that we are within gate
         const Eigen::Vector3d center = (pos1Gate + pos2Gate) / 2;
         const double edgeLength = 0.425;
-        if(std::abs(center(0)) <= edgeLength and std::abs(center(2)) <= edgeLength){
+        if (std::abs(center(0)) <= edgeLength and std::abs(center(2)) <= edgeLength)
+        {
             return true;
         }
     }
@@ -277,7 +277,7 @@ void OnlineTrajGenerator::recomputeTraj(const int gateId, const Eigen::VectorXd 
     pathWriter.writeCheckpoints(checkpoints);
 
     // advance trajectory by delta t. Approximately accounting for time it takes us to recomputeTraj
-    const double advanceTime = configParser->getPathPlannerProperties().timeLimitOnline + 0.05; // 50 ms added for general computation overhead
+    const double advanceTime = configParser->getPathPlannerProperties().timeLimitOnline + 0.01; // 50 ms added for general computation overhead
     double advancedTime = flightTime;
     if (configParser->getPathPlannerProperties().advanceForCalculation)
     {
