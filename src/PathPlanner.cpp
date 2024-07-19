@@ -112,7 +112,7 @@ bool PathPlanner::planPath(const Eigen::Vector3d &start, const Eigen::Vector3d &
     else if (configParser->getPathPlannerProperties().planner == "fmt")
     {
         std::shared_ptr<ompl::geometric::FMT> algo = std::make_shared<ompl::geometric::FMT>(si);
-        const int samples = configParser->getTrajectoryGeneratorProperties().samplesFTM;
+        const int samples = configParser->getPathPlannerProperties().samplesFMT;
         algo->setNumSamples(samples);
         planner = ob::PlannerPtr(algo);
     }

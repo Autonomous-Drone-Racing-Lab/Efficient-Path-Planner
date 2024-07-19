@@ -60,6 +60,7 @@ struct PathPlannerProperties
     bool advanceForCalculation;
     bool canPassGate;
     std::string planner;
+    int samplesFMT;
 };
 
 /**
@@ -72,7 +73,7 @@ struct TrajectoryGeneratorProperties
     double samplingInterval;
     std::string type;
     double maxTime;
-    int samplesFTM;
+    
 
     double maxTrajDivergence;
     double prependTrajTime;
