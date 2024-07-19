@@ -60,6 +60,11 @@ cd build
 make
 ```
 
+## Third Party Software
+Within our work, we utilized different software of other people. Important to mention are
+- [Mav Trajectory Generation](https://github.com/ethz-asl/mav_trajectory_generation) for experimenting with minimum snap trajectories
+- [Tobias Kunz](https://github.com/tobiaskunz/trajectories) for providing implementations of his time-parametrization algorithm
+
 
 
 
