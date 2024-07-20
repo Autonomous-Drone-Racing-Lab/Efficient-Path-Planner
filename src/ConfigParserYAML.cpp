@@ -104,7 +104,7 @@ void ConfigParser::parsePathPlannerProperties(const YAML::Node &config)
     pathPlannerProperties.canPassGate = config["path_planner_properties"]["can_pass_gate"].as<bool>();
     pathPlannerProperties.advanceForCalculation = config["path_planner_properties"]["advance_for_calculation"].as<bool>();
     pathPlannerProperties.planner = config["path_planner_properties"]["planner"].as<std::string>();
-     pathPlannerProperties.samplesFMT = config["trajectory_generator_properties"]["samples_fmt"].as<int>();
+    pathPlannerProperties.samplesFMT = config["path_planner_properties"]["samples_fmt"].as<int>();
 }
 
 
