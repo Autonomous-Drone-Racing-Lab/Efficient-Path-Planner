@@ -11,33 +11,31 @@
 
 namespace ob = ompl::base;
 void World::addGatePrivateOperation(const int gateId, const Eigen::VectorXd &coordinates, const bool isUpdate)
-{   
-
+{
     Eigen::Vector3d pos = coordinates.head(3);
     pos(2) = 0.0;
     Eigen::Vector3d rot = coordinates.segment(3, 3);
     int type = coordinates(6);
     const std::vector<OBBDescription> &obbDescriptions = configParser->getGateGeometryByTypeId(type);
     const ObjectProperties &objectProperties = configParser->getObjectPropertiesByTypeId(type);
-    
+
     // create object
     Object obj = Object::createFromDescription(pos, rot, obbDescriptions);
     // on update remove old OBBs
     if (isUpdate)
-    {   
+    {
         // no of obbs in tree
         const int no_obj_before_delete = index.size();
         removeObject(gateId, "gate", obj.obbs.size(), inflateSizeGate);
         const int no_obj_after_delete = index.size();
         std::cout << "Delted " << no_obj_after_delete - no_obj_before_delete << " obbs from " << no_obj_before_delete << " to " << no_obj_after_delete << std::endl;
-
     }
     // add new OBBs
     addObject(obj, gateId, "gate", inflateSizeGate);
 }
 
 void World::addGate(int gateId, const Eigen::VectorXd &coordinates)
-{   
+{
     addGatePrivateOperation(gateId, coordinates, false);
 }
 
@@ -79,7 +77,7 @@ void World::removeObject(const int id, const std::string &type, const int noOfOb
     }
 }
 
-bool World::checkPointValidity(const Eigen::Vector3d &point,  const bool canPassGate)
+bool World::checkPointValidity(const Eigen::Vector3d &point, const bool canPassGate)
 {
     std::vector<value> potentialHits;
     index.query(boost::geometry::index::contains(point), std::back_inserter(potentialHits));
@@ -90,13 +88,14 @@ bool World::checkPointValidity(const Eigen::Vector3d &point,  const bool canPass
 
         const bool isGate = v.second.find("gate") != std::string::npos;
         const double inflateSize = isGate ? inflateSizeGate : inflateSizeObstacle;
-        
-        if(obb.type=="filling" and canPassGate){
+
+        if (obb.type == "filling" and canPassGate)
+        {
             continue;
         }
 
         if (obb.checkCollisionWithPoint(point, inflateSize))
-        {   
+        {
             return false;
         }
     }
@@ -104,7 +103,8 @@ bool World::checkPointValidity(const Eigen::Vector3d &point,  const bool canPass
     return true;
 }
 
-bool World::checkPointValidity(const Eigen::Vector3d& point, const double minDistance) const{
+bool World::checkPointValidity(const Eigen::Vector3d &point, const double minDistance) const
+{
     std::vector<value> potentialHits;
     index.query(boost::geometry::index::contains(point), std::back_inserter(potentialHits));
 
@@ -113,13 +113,14 @@ bool World::checkPointValidity(const Eigen::Vector3d& point, const double minDis
         OBB obb = obbs.at(v.second);
 
         // allowed to pass gates
-        if(obb.type=="filling"){
+        if (obb.type == "filling")
+        {
             continue;
         }
 
         if (obb.checkCollisionWithPoint(point, minDistance))
-        {   
-            //std::cout << "Collision with " << v.second << std::endl;
+        {
+            // std::cout << "Collision with " << v.second << std::endl;
             return false;
         }
     }
@@ -146,7 +147,8 @@ bool World::checkRayValid(const Eigen::Vector3d &start, const Eigen::Vector3d &e
         OBB obb = obbs.at(v.second);
         bool isGate = v.second.find("gate") != std::string::npos;
         // Allow to pass gates if canPassGate is true
-        if(obb.type=="filling" and canPassGate){
+        if (obb.type == "filling" and canPassGate)
+        {
             continue;
         }
 

@@ -107,7 +107,6 @@ void ConfigParser::parsePathPlannerProperties(const YAML::Node &config)
     pathPlannerProperties.samplesFMT = config["path_planner_properties"]["samples_fmt"].as<int>();
 }
 
-
 void ConfigParser::parseTrajectoryGeneratorProperties(const YAML::Node &config)
 {
     trajectoryGeneratorProperties.maxVelocity = config["trajectory_generator_properties"]["max_velocity"].as<double>();

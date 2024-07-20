@@ -5,11 +5,9 @@
 #include "ConfigParserYAML.h"
 #include <string>
 
-
 class OBB
 {
 public:
-    
     /**
      * @brief Constructs an OBB (Oriented Bounding Box) object.
      *
@@ -19,7 +17,6 @@ public:
      * @param name The name of the OBB. It is to make it uniquely identifiable
      */
     OBB(const Eigen::Vector3d &center, const Eigen::Vector3d &halfSize, const std::string &type, const std::string &name);
-
 
     /**
      * Checks for collision between an oriented bounding box (OBB) and a ray.
@@ -38,10 +35,10 @@ public:
      * @return True if the point collides with the inflated OBB, false otherwise.
      */
     bool checkCollisionWithPoint(const Eigen::Vector3d &point, const double inflateSize) const;
-    
+
     /**
      * @brief Calculates the Axis-Aligned Bounding Box (AABB) of the OBB.
-     * 
+     *
      * @param inflateSize The amount by which to inflate the AABB.
      * @return The inflated AABB of the OBB.
      */
@@ -53,8 +50,9 @@ public:
     std::string type;
     std::string name;
     box boundingBox;
-    
-    bool shouldBeInflated() const{
+
+    bool shouldBeInflated() const
+    {
         return type == "collision";
     }
 };

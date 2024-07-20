@@ -16,7 +16,7 @@
 class ConfigParser
 {
 public:
-    ConfigParser(const std::string& configPath);
+    ConfigParser(const std::string &configPath);
 
     /**
      * Retrieves the gate geometry description for a given type ID.
@@ -35,31 +35,31 @@ public:
      * @return A constant reference to a vector of OBBDescription objects representing the obstacle geometry.
      */
     const std::vector<OBBDescription> &getObstacleGeometry() const;
-    
+
     /**
      * Retrieves the object properties for a given type ID.
-     * 
+     *
      * Object in this case means small gate, large gate, ... and properties are something like height
      *
      * @param typeId The type ID of the object.
      * @return The object properties associated with the given type ID.
      */
     const ObjectProperties &getObjectPropertiesByTypeId(const int typeId) const;
-    
+
     /**
      * Retrieves the world properties.
      *
      * @return The world properties.
      */
     const WorldProperties &getWorldProperties() const;
-    
+
     /**
      * Retrieves the path planner properties.
      *
      * @return The path planner properties.
      */
     const PathPlannerProperties &getPathPlannerProperties() const;
-    
+
     /**
      * Retrieves the trajectory generator properties.
      *
@@ -76,9 +76,9 @@ private:
     TrajectoryGeneratorProperties trajectoryGeneratorProperties;
 
     // parsers
-    void parseGeometries(const YAML::Node& config);
-    void parseObjectProperties(const YAML::Node& config);
-    void parseWorldProperties(const YAML::Node& config);
-    void parsePathPlannerProperties(const YAML::Node& config);
-    void parseTrajectoryGeneratorProperties(const YAML::Node& config);
+    void parseGeometries(const YAML::Node &config);
+    void parseObjectProperties(const YAML::Node &config);
+    void parseWorldProperties(const YAML::Node &config);
+    void parsePathPlannerProperties(const YAML::Node &config);
+    void parseTrajectoryGeneratorProperties(const YAML::Node &config);
 };

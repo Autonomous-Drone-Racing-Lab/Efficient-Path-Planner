@@ -3,9 +3,9 @@
 
 /**
  * Custom class for traj Interpolation based on fitting a spline and parametrizing it with uniform path velocity.
- * 
+ *
  * This class is created for debug purposes. For good performance Minimum Snap or Time Optimal Parametrization should be utilized.
-*/
+ */
 class TrajInterpolation
 {
 public:
@@ -16,6 +16,4 @@ private:
     Eigen::VectorXd parametrizePath(const std::vector<Eigen::Vector3d> &path) const;
     Eigen::Spline3d fitSpline(const Eigen::VectorXd &t, const std::vector<Eigen::Vector3d> &path) const;
     std::vector<Eigen::Vector3d> sampleSpline(const Eigen::Spline3d &spline, const double maxT, const double dt) const;
-
-
 };

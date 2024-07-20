@@ -6,7 +6,7 @@
 namespace ob = ompl::base;
 
 bool MotionValidator::checkMotion(const ob::State *s1, const ob::State *s2) const
-{   
+{
     const ob::RealVectorStateSpace::StateType *state1 = s1->as<ob::RealVectorStateSpace::StateType>();
     const ob::RealVectorStateSpace::StateType *state2 = s2->as<ob::RealVectorStateSpace::StateType>();
 
@@ -16,8 +16,8 @@ bool MotionValidator::checkMotion(const ob::State *s1, const ob::State *s2) cons
     return world->checkRayValid(start, end, canPassGate);
 }
 
-bool MotionValidator::checkMotion(const ob::State *s1, const ob::State *s2, std::pair< ob::State *, double > &lastValid) const
-{ 
+bool MotionValidator::checkMotion(const ob::State *s1, const ob::State *s2, std::pair<ob::State *, double> &lastValid) const
+{
     std::cerr << "Not implemented error" << std::endl;
     return true;
 
@@ -46,14 +46,12 @@ bool MotionValidator::checkMotion(const ob::State *s1, const ob::State *s2, std:
     //         lastValidState->values[0] = lastValidPoint.x();
     //         lastValidState->values[1] = lastValidPoint.y();
     //         lastValidState->values[2] = lastValidPoint.z();
-            
-            
+
     //         return false;
 
     //     }
     //     lastValidPoint = current;
     // }
-
 
     // return true;
 }

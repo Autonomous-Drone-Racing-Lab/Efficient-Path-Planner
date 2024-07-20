@@ -7,9 +7,10 @@
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(online_traj_planner, m) {
+PYBIND11_MODULE(online_traj_planner, m)
+{
     py::class_<OnlineTrajGenerator>(m, "OnlineTrajGenerator")
-        .def(py::init<const Eigen::Vector3d&, const Eigen::Vector3d&, const Eigen::MatrixXd&, const Eigen::MatrixXd&, const std::string&>(),
+        .def(py::init<const Eigen::Vector3d &, const Eigen::Vector3d &, const Eigen::MatrixXd &, const Eigen::MatrixXd &, const std::string &>(),
              py::arg("start"), py::arg("goal"), py::arg("nominalGatePositionAndType"), py::arg("nominalObstaclePosition"), py::arg("configPath"))
         .def("pre_compute_traj", &OnlineTrajGenerator::preComputeTraj, py::arg("takeoffTime"))
         .def("update_gate_pos", &OnlineTrajGenerator::updateGatePos,
@@ -19,8 +20,8 @@ PYBIND11_MODULE(online_traj_planner, m) {
         .def("get_planned_traj", &OnlineTrajGenerator::getPlannedTraj);
 
     py::class_<Eigen::Vector3d>(m, "Vector3d")
-        .def(py::init<const Eigen::Ref<const Eigen::Vector3d>&>());  // Allows initialization from a numpy array directly
+        .def(py::init<const Eigen::Ref<const Eigen::Vector3d> &>()); // Allows initialization from a numpy array directly
 
     py::class_<Eigen::MatrixXd>(m, "MatrixXd")
-        .def(py::init<const Eigen::Ref<const Eigen::MatrixXd>&>());  // Allows initialization from a numpy array directly
+        .def(py::init<const Eigen::Ref<const Eigen::MatrixXd> &>()); // Allows initialization from a numpy array directly
 }

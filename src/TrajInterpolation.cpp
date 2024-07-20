@@ -94,7 +94,7 @@ double computeTimeSegment(const Eigen::Vector3d &p1, const Eigen::Vector3d &p2, 
     }
 }
 
-Eigen::MatrixXd TrajInterpolation::interpolateTrajMaxVel(const std::vector<Eigen::Vector3d> &path,const double v_start, const double v_max, const double a_max, const double advancedTime, const double dt) const
+Eigen::MatrixXd TrajInterpolation::interpolateTrajMaxVel(const std::vector<Eigen::Vector3d> &path, const double v_start, const double v_max, const double a_max, const double advancedTime, const double dt) const
 {
     Eigen::VectorXd t = parametrizePath(path);
     Eigen::Spline3d spline = fitSpline(t, path);

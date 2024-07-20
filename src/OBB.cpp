@@ -5,13 +5,15 @@
 #include <string>
 #include <iostream>
 
-OBB::OBB(const Eigen::Vector3d &center, const Eigen::Vector3d &halfSize, const std::string &type, const std::string&name) :  center(center), halfSize(halfSize), type(type), name(name){}
+OBB::OBB(const Eigen::Vector3d &center, const Eigen::Vector3d &halfSize, const std::string &type, const std::string &name) : center(center), halfSize(halfSize), type(type), name(name) {}
 
-bool OBB::checkCollisionWithRay(const Eigen::Vector3d& start, const Eigen::Vector3d& end, const double inflateSize)const{
+bool OBB::checkCollisionWithRay(const Eigen::Vector3d &start, const Eigen::Vector3d &end, const double inflateSize) const
+{
     // check start and end are valid
     const bool collisionStart = checkCollisionWithPoint(start, inflateSize);
     const bool collisionEnd = checkCollisionWithPoint(end, inflateSize);
-    if(collisionStart || collisionEnd){
+    if (collisionStart || collisionEnd)
+    {
         return true;
     }
 
@@ -27,14 +29,18 @@ bool OBB::checkCollisionWithRay(const Eigen::Vector3d& start, const Eigen::Vecto
     const Eigen::Vector3d box_min = -inflatedHalfSize;
     const Eigen::Vector3d box_max = inflatedHalfSize;
 
-
-    for(int i = 0; i < 3; i++){
-        if(abs(localDirection(i)) < 1e-6){
+    for (int i = 0; i < 3; i++)
+    {
+        if (abs(localDirection(i)) < 1e-6)
+        {
             // Rays is parallel to the plane. No hit if the ray is outside the box
-            if(localStart(i) < box_min(i) || localStart(i) > box_max(i)){
+            if (localStart(i) < box_min(i) || localStart(i) > box_max(i))
+            {
                 return false;
             }
-        }else{
+        }
+        else
+        {
             double invD = 1.0f / localDirection(i);
             double t1 = (box_min(i) - localStart(i)) * invD;
             double t2 = (box_max(i) - localStart(i)) * invD;
@@ -45,53 +51,56 @@ bool OBB::checkCollisionWithRay(const Eigen::Vector3d& start, const Eigen::Vecto
             tMin = std::max(tMin, tEntry);
             tMax = std::min(tMax, tExit);
 
-            if(tMin > tMax){
+            if (tMin > tMax)
+            {
                 return false;
             }
-            
         }
     }
     return 0 <= tMin && tMin <= 1 && 0 <= tMax && tMax <= 1;
 }
 
-bool OBB::checkCollisionWithPoint(const Eigen::Vector3d& point, const double inflateSize) const {
+bool OBB::checkCollisionWithPoint(const Eigen::Vector3d &point, const double inflateSize) const
+{
     // Transform the point into the OBB's local coordinate system
     const Eigen::Vector3d localPoint = rotation.transpose() * (point - center);
     Eigen::Vector3d collisionHalfSizes = halfSize;
-    
-    if(shouldBeInflated()){
-       collisionHalfSizes += Eigen::Vector3d(inflateSize, inflateSize, inflateSize);
+
+    if (shouldBeInflated())
+    {
+        collisionHalfSizes += Eigen::Vector3d(inflateSize, inflateSize, inflateSize);
     }
 
     // Check if the point is within the inflated bounding box
     const bool isColliding = (std::abs(localPoint.x()) <= collisionHalfSizes.x()) &&
-               (std::abs(localPoint.y()) <= collisionHalfSizes.y()) &&
-               (std::abs(localPoint.z()) <= collisionHalfSizes.z());
+                             (std::abs(localPoint.y()) <= collisionHalfSizes.y()) &&
+                             (std::abs(localPoint.z()) <= collisionHalfSizes.z());
 
-    if(isColliding){
+    if (isColliding)
+    {
         // std::cout << "Collision of object " << name << " with point " << point << std::endl;
         // std::cout << "Point" << point.transpose() << std::endl;
         // std::cout << "Obb Center" << center.transpose() << std::endl;
-        //std::cout << "Local point: " << localPoint.transpose() << std::endl;
-        //std::cout << "Half sizes: " << collisionHalfSizes.transpose() << std::endl;
-        //std::cout << "Center: " << center.transpose() << std::endl;
-        //std::cout << "Rotation: \n" << rotation << std::endl;
+        // std::cout << "Local point: " << localPoint.transpose() << std::endl;
+        // std::cout << "Half sizes: " << collisionHalfSizes.transpose() << std::endl;
+        // std::cout << "Center: " << center.transpose() << std::endl;
+        // std::cout << "Rotation: \n" << rotation << std::endl;
     }
 
     return isColliding;
 }
 
+box OBB::getAABB(const double inflateSize) const
+{
+    // Get world fram AABB by rotating object into world frame and doing worst case estimation
+    // Calculate the cornoes of the AABB based on the OBB center, half sizes and rotation
+    // For this first create unit cube, scaled by halfSize
 
-box OBB::getAABB(const double inflateSize) const {
-   // Get world fram AABB by rotating object into world frame and doing worst case estimation
-   // Calculate the cornoes of the AABB based on the OBB center, half sizes and rotation
-   // For this first create unit cube, scaled by halfSize
-    
     Eigen::Matrix3Xd corners(3, 8);
-    corners << -1,  1,  1, -1, -1,  1,  1, -1,
-               -1, -1,  1,  1, -1, -1,  1,  1,
-               -1, -1, -1, -1,  1,  1,  1,  1;
-    
+    corners << -1, 1, 1, -1, -1, 1, 1, -1,
+        -1, -1, 1, 1, -1, -1, 1, 1,
+        -1, -1, -1, -1, 1, 1, 1, 1;
+
     Eigen::Matrix<double, 3, 8> halfSizesStacked = halfSize.replicate(1, 8);
     corners = corners.cwiseProduct(halfSizesStacked);
 
@@ -105,9 +114,10 @@ box OBB::getAABB(const double inflateSize) const {
     // Inflate the AABB
     const Eigen::Vector3d inflateSizeVec(inflateSize, inflateSize, inflateSize);
     // conly collision objects are inflated, filling objects are not
-    if(shouldBeInflated()){
-            minCorner -= inflateSizeVec;
-            maxCorner += inflateSizeVec;
+    if (shouldBeInflated())
+    {
+        minCorner -= inflateSizeVec;
+        maxCorner += inflateSizeVec;
     }
 
     return box(minCorner, maxCorner);

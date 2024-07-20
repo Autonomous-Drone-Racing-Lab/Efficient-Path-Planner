@@ -26,7 +26,7 @@ PathWriter::PathWriter(const std::string &folderPath)
                 if (std::filesystem::is_regular_file(entry))
                 {
                     std::filesystem::remove(entry);
-                    //std::cout << "Removed file: " << entry.path() << std::endl;
+                    // std::cout << "Removed file: " << entry.path() << std::endl;
                 }
             }
         }
@@ -58,9 +58,9 @@ void PathWriter::writePath(const std::vector<Eigen::Vector3d> &path)
     write_count++;
 }
 
-void PathWriter::updateGatePos(const int gateId, const Eigen::VectorXd& gateInfo)
+void PathWriter::updateGatePos(const int gateId, const Eigen::VectorXd &gateInfo)
 {
-   const std::string fileName = "gates.txt";
+    const std::string fileName = "gates.txt";
     const std::string filePath = folderPath + "/" + fileName;
 
     std::ofstream file(filePath, std::ios_base::app);
@@ -73,8 +73,8 @@ void PathWriter::updateGatePos(const int gateId, const Eigen::VectorXd& gateInfo
     file << "id: " << gateId << " info: " << gateInfo.transpose() << std::endl;
 }
 
-
-void PathWriter::updateObstaclePos(const int obstacleId, const Eigen::VectorXd& pose){
+void PathWriter::updateObstaclePos(const int obstacleId, const Eigen::VectorXd &pose)
+{
     const std::string fileName = "obstacles.txt";
     const std::string filePath = folderPath + "/" + fileName;
 
@@ -88,7 +88,8 @@ void PathWriter::updateObstaclePos(const int obstacleId, const Eigen::VectorXd& 
     file << "id: " << obstacleId << " info: " << pose.transpose() << std::endl;
 }
 
-void PathWriter::writeCheckpoints(const std::vector<Eigen::Vector3d>& checkpoints){
+void PathWriter::writeCheckpoints(const std::vector<Eigen::Vector3d> &checkpoints)
+{
     const std::string fileName = "checkpoints.txt";
     const std::string filePath = folderPath + "/" + fileName;
 

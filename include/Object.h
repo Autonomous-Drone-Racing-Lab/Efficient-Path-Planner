@@ -8,7 +8,6 @@
 #include <vector>
 #include <iostream>
 
-
 class Object
 {
 public:
@@ -39,7 +38,7 @@ public:
      * @param translation The translation vector to apply to the object.
      */
     void translate(const Eigen::Vector3d &translation);
-    
+
     /**
      * Rotates the object around the Z-axis by the specified angle.
      *
@@ -50,19 +49,20 @@ public:
 
     /**
      * @brief Retrieves the Axis-Aligned Bounding Boxes (AABBs) for the object.
-     * 
+     *
      * This function returns a vector of AABBs that represent the object's bounding boxes.
      * The `inflateSize` parameter allows you to specify an additional size to inflate the AABBs.
-     * 
+     *
      * @param inflateSize The amount by which to inflate the AABBs (optional).
      * @return A vector of AABBs representing the object's bounding boxes.
      */
     std::vector<box> getAABBs(const double inflateSize) const;
-    
+
     /**
      * Prints the information of each oriented bounding box (OBB) in the object.
      */
-    void printObbs() {
+    void printObbs()
+    {
         int i = 0;
         for (auto obb : obbs)
         {

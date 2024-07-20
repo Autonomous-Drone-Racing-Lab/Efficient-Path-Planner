@@ -73,7 +73,6 @@ struct TrajectoryGeneratorProperties
     double samplingInterval;
     std::string type;
     double maxTime;
-    
 
     double maxTrajDivergence;
     double prependTrajTime;

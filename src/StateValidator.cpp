@@ -5,7 +5,7 @@
 
 namespace ob = ompl::base;
 bool StateValidator::isValid(const ompl::base::State *state) const
-{   
+{
     const ob::RealVectorStateSpace::StateType *state3D =
         state->as<ob::RealVectorStateSpace::StateType>();
     const Eigen::Vector3d pos(state3D->values[0], state3D->values[1], state3D->values[2]);
