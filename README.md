@@ -4,7 +4,7 @@
 To use this code, relevant other packages must be installed before. Below you will find a list of instructions
 
 **Install Submodules**
-One external dependencies must be added to this codebase in the form of Git Submodules. Pybind11 for creating the pyhon bindings. (Tqo other external dependencies for path planning a provided within this repository and the external folder)
+One external dependency (Pybind11) must be added to this codebase in the form of a Git Submodule. (The other external dependencies for path planning are already provided within this repository). To install the submodule run
 ```
 git submodule init
 git submodule update --remote
@@ -12,7 +12,7 @@ git submodule update --remote
 
 If you have not cloned this repo yet, you can also download all submodules during the clone via
 ```
-git clone --recurse-submodules <repository_url>
+git clone --recurse-submodules https://github.com/Autonomous-Drone-Racing-Lab/Efficient-Path-Planner
 ```
 
 **Install Eigen**
@@ -21,6 +21,7 @@ sudo apt install libeigen3-dev
 ```
 
 **Install glog**
+
 From outside this directory e.g. `code` directory, run
 ```
 # Fetch glog in version 6
@@ -38,16 +39,18 @@ sudo apt-get install libyaml-cpp-dev
 ```
 
 **Install OMPL**
-Follow the tutorial on the ompl website
+
+Follow the tutorial on the [ompl website](https://ompl.kavrakilab.org/installation.html)
 
 ### Build Code
 To generate the python binding simply run
 ```
 pip install .
 ```
-from the root of the directory. This makes the package available via the name `polynomial_trajectory` in python, i.e. `import polynomial_trajectory`
+from the root of this package. This makes the path planning package available to python via the name `polynomial_trajectory`, i.e. `import polynomial_trajectory`
 
-To setup the build system, before the first `pip install .` you must do
+
+**Important: In case the first run fails, you must first setup the build system.** For this follow the steps:
 ```
 mkdir build
 cd build
